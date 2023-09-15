@@ -1,0 +1,31 @@
+use std::str::FromStr;
+use crate::ast;
+
+grammar;
+
+pub Expr: Box<ast::Expr> = {
+    <l:Expr> <op: ExprOp> <r:Factor> => Box::new(ast::Expr::Op(l, op, r)),
+    Factor,
+}
+
+ExprOp: ast::Opcode = {
+    "+" => ast::Opcode::Add,
+    "-" => ast::Opcode::Sub,
+}
+
+Factor: Box<ast::Expr> = {
+    <l:Factor> <op:FactorOp> <r:Term> => Box::new(ast::Expr::Op(l, op, r)),
+    Term,
+}
+
+FactorOp: ast::Opcode = {
+    "*" => ast::Opcode::Mul,
+    "/" => ast::Opcode::Div,
+}
+
+pub Term: Box<ast::Expr> = {
+    <n:Num> => Box::new(ast::Expr::Number(n)),
+    "(" <t:Expr> ")" => t,
+};
+
+Num: i32 = <s:r"[0-9]+"> => i32::from_str(s).unwrap();
