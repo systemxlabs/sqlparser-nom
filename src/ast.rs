@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub enum Statement {
     CreateTable(CreateTableStatement),
 }
@@ -10,7 +11,7 @@ pub struct CreateTableStatement {
 }
 
 /// An identifier
-#[derive(Debug)]
+#[derive(derive_new::new, Debug)]
 pub struct Ident {
     /// The value of the identifier without quotes.
     pub value: String,
@@ -21,6 +22,19 @@ pub struct Ident {
 pub struct ColumnDef {
     pub name: Ident,
     pub column_type: DataType,
+    pub constraints: Vec<ColumnConstraint>,
+}
+
+#[derive(Debug)]
+pub struct ColumnConstraint {
+    pub name: Option<Ident>,
+    pub constraint: ColumnConstraintKind,
+}
+
+#[derive(Debug)]
+pub enum ColumnConstraintKind {
+    PrimaryKey,
+    NotNull,
 }
 
 /// SQL data types

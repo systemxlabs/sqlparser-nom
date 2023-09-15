@@ -10,3 +10,4 @@ lalrpop = "0.19"
 
 [dependencies]
 lalrpop-util = { version = "0.19", features = ["lexer"] }
+derive-new = "0.5.9"

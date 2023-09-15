@@ -1,5 +1,98 @@
-use std::str::FromStr;
+use crate::ast;
 
 grammar;
 
-pub Num: i32 = <s:r"[0-9]+"> => i32::from_str(s).unwrap();
+match {
+    r"(?i)tinyint" => "TINYINT",
+    r"(?i)bool" => "BOOL",
+    r"(?i)boolean" => "BOOLEAN",
+    r"(?i)not" => "NOT",
+    r"(?i)null" => "NULL",
+    r"(?i)primary" => "PRIMARY",
+    r"(?i)key" => "KEY",
+    r"(?i)constraint" => "CONSTRAINT",
+    r"(?i)create" => "CREATE",
+    r"(?i)table" => "TABLE",
+
+    "," => ",",
+    "." => ".",
+    "(" => "(",
+    ")" => ")",
+    "*" => "*",
+    "/" => "/",
+    "+" => "+",
+    "-" => "-",
+    "=" => "=",
+    "!=" => "!=",
+    "<" => "<",
+    "<=" => "<=",
+    ">" => ">",
+    ">=" => ">=",
+    "||" => "||"
+} else {
+    r"[A-Za-z_][A-Za-z0-9_]*" => ID,
+}
+
+pub CreateTableStatement: ast::CreateTableStatement = {
+    "CREATE" "TABLE" <name: Ident> "(" <columns: ColumnDefList> ")"
+        => {
+            ast::CreateTableStatement { name, columns }   
+        },
+};
+
+ColumnDefList: Vec<ast::ColumnDef> = {
+    CommaSeparatedList<ColumnDef>
+}
+
+pub ColumnDef: ast::ColumnDef = {
+    <name: Ident> <column_type: DataType> <constraints: ColumnConstraintList>
+        => ast::ColumnDef {
+            name,
+            column_type,
+            constraints
+        },
+};
+
+ColumnConstraintList: Vec<ast::ColumnConstraint> = {
+    ColumnConstraint*
+};
+
+ColumnConstraint: ast::ColumnConstraint = {
+    <name: ConstraintName?> "NOT" "NULL" 
+        => ast::ColumnConstraint { name: None, constraint: ast::ColumnConstraintKind::NotNull },
+    <name: ConstraintName?> "PRIMARY" "KEY" 
+        => ast::ColumnConstraint { name: None, constraint: ast::ColumnConstraintKind::PrimaryKey },
+};
+
+ConstraintName: ast::Ident = {
+    "CONSTRAINT" <name: Ident> => name,
+};
+
+
+DataType: ast::DataType = {
+    BooleanType,
+    TinyIntType,
+};
+
+TinyIntType: ast::DataType = {
+    "TINYINT" => ast::DataType::TinyInt(None),
+};
+
+BooleanType: ast::DataType = {
+    "BOOL" => ast::DataType::Boolean,
+    "BOOLEAN" => ast::DataType::Boolean,
+};
+
+pub Ident: ast::Ident = {
+    ID => ast::Ident::new(<>.to_string()),
+};
+
+CommaSeparatedList<T>: Vec<T> = {
+    <mut v:(<T> ",")*> <e:T?> => match e {
+        None => v,
+        Some(e) => {
+            v.push(e);
+            v
+        }
+    }
+};
