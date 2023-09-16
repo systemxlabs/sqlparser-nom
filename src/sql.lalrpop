@@ -3,7 +3,10 @@ use crate::ast;
 grammar;
 
 match {
-    r"(?i)tinyint" => "TINYINT",
+    r"(?i)smallint" => "SMALLINT",
+    r"(?i)int" => "INT",
+    r"(?i)integer" => "INTEGER",
+    r"(?i)bigint" => "BIGINT",
     r"(?i)bool" => "BOOL",
     r"(?i)boolean" => "BOOLEAN",
     r"(?i)not" => "NOT",
@@ -13,6 +16,7 @@ match {
     r"(?i)constraint" => "CONSTRAINT",
     r"(?i)create" => "CREATE",
     r"(?i)table" => "TABLE",
+    r"(?i)varchar" => "VARCHAR",
 
     "," => ",",
     "." => ".",
@@ -31,20 +35,32 @@ match {
     "||" => "||"
 } else {
     r"[A-Za-z_][A-Za-z0-9_]*" => ID,
+    r"[0-9]+" => UNSIGNED_INTEGER_LIT,
+    r"([0-9]+)\.([0-9]+)?" => UNSIGNED_FLOAT_LIT,
+    r"0x[0-9A-Fa-f]+" => HEX_LIT,
+    r"'[^[[:cntrl:]]']*'" => SINGLE_QUOTED_STRING_LIT
 }
 
-pub CreateTableStatement: ast::CreateTableStatement = {
+
+//
+// Statements
+//
+pub Statement: ast::Statement = {
+    CreateTableStatement => ast::Statement::CreateTable(<>),
+};
+CreateTableStatement: ast::CreateTableStatement = {
     "CREATE" "TABLE" <name: Ident> "(" <columns: ColumnDefList> ")"
         => {
             ast::CreateTableStatement { name, columns }   
         },
 };
 
+
 ColumnDefList: Vec<ast::ColumnDef> = {
     CommaSeparatedList<ColumnDef>
 }
 
-pub ColumnDef: ast::ColumnDef = {
+ColumnDef: ast::ColumnDef = {
     <name: Ident> <column_type: DataType> <constraints: ColumnConstraintList>
         => ast::ColumnDef {
             name,
@@ -59,9 +75,9 @@ ColumnConstraintList: Vec<ast::ColumnConstraint> = {
 
 ColumnConstraint: ast::ColumnConstraint = {
     <name: ConstraintName?> "NOT" "NULL" 
-        => ast::ColumnConstraint { name: None, constraint: ast::ColumnConstraintKind::NotNull },
+        => ast::ColumnConstraint { name, constraint: ast::ColumnConstraintKind::NotNull },
     <name: ConstraintName?> "PRIMARY" "KEY" 
-        => ast::ColumnConstraint { name: None, constraint: ast::ColumnConstraintKind::PrimaryKey },
+        => ast::ColumnConstraint { name, constraint: ast::ColumnConstraintKind::PrimaryKey },
 };
 
 ConstraintName: ast::Ident = {
@@ -69,24 +85,100 @@ ConstraintName: ast::Ident = {
 };
 
 
+//
+// Expr
+//
+pub Expr: ast::Expr = {
+    LiteralExpr,
+};
+pub LiteralExpr: ast::Expr = {
+    Literal => ast::Expr::Literal(<>)
+};
+MulDivBinaryOpExpr: ast::Expr = {
+    <l:MulDivBinaryOpExpr> "*" <r:LiteralExpr> => ast::Expr::BinaryOp {left: Box::new(l), op: ast::BinaryOp::Mul, right: Box::new(r)},
+    <l:MulDivBinaryOpExpr> "/" <r:LiteralExpr> => ast::Expr::BinaryOp {left: Box::new(l), op: ast::BinaryOp::Div, right: Box::new(r)},
+    LiteralExpr,
+};
+pub AddSubBinaryOpExpr: ast::Expr = {
+    <l:AddSubBinaryOpExpr> "+" <r:MulDivBinaryOpExpr> => ast::Expr::BinaryOp {left: Box::new(l), op: ast::BinaryOp::Add, right: Box::new(r)},
+    <l:AddSubBinaryOpExpr> "-" <r:MulDivBinaryOpExpr> => ast::Expr::BinaryOp {left: Box::new(l), op: ast::BinaryOp::Sub, right: Box::new(r)},
+    MulDivBinaryOpExpr,
+};
+
+
+
+UnaryOp: ast::UnaryOp = {
+    "+" => ast::UnaryOp::Plus,
+    "-" => ast::UnaryOp::Minus,
+};
+
+pub BinaryOp: ast::BinaryOp = {
+    "+" => ast::BinaryOp::Add,
+    "-" => ast::BinaryOp::Sub,
+    "*" => ast::BinaryOp::Mul,
+    "/" => ast::BinaryOp::Div,
+
+    ">" => ast::BinaryOp::Gt,
+    "<" => ast::BinaryOp::Lt,
+    ">=" => ast::BinaryOp::GtEq,
+    "<=" => ast::BinaryOp::LtEq,
+    "=" => ast::BinaryOp::Eq,
+    "!=" => ast::BinaryOp::NotEq,
+};
+
+
+//
+// Data Types
+//
 DataType: ast::DataType = {
     BooleanType,
-    TinyIntType,
+    SmallIntType,
+    IntegerType,
+    BigIntType,
+    VarcharType,
 };
-
-TinyIntType: ast::DataType = {
-    "TINYINT" => ast::DataType::TinyInt(None),
-};
-
 BooleanType: ast::DataType = {
     "BOOL" => ast::DataType::Boolean,
     "BOOLEAN" => ast::DataType::Boolean,
 };
-
-pub Ident: ast::Ident = {
-    ID => ast::Ident::new(<>.to_string()),
+SmallIntType: ast::DataType = {
+    "SMALLINT" <length: LengthSpecification?> => ast::DataType::SmallInt(length),
+};
+IntegerType: ast::DataType = {
+    "INT" <length: LengthSpecification?> => ast::DataType::Integer(length),
+    "INTEGER" <length: LengthSpecification?> => ast::DataType::Integer(length),
+};
+BigIntType: ast::DataType = {
+    "BIGINT" <length: LengthSpecification?> => ast::DataType::BigInt(length)
+};
+VarcharType: ast::DataType = {
+    "VARCHAR" <length: LengthSpecification?> => ast::DataType::Varchar(length)
 };
 
+
+//
+// Literal
+//
+pub Literal: ast::Literal = {
+    StringLiteral => ast::Literal::String(<>),
+    UnsignedFloatLiteral => ast::Literal::UnsignedFloat(<>),
+    UnsignedIntegerLiteral => ast::Literal::UnsignedInteger(<>),
+}
+UnsignedIntegerLiteral: usize = {
+    <num:UNSIGNED_INTEGER_LIT> => <>.parse::<usize>().unwrap(),
+};
+UnsignedFloatLiteral: f64 = {
+    <num:UNSIGNED_FLOAT_LIT> => <>.parse::<f64>().unwrap(),
+};
+StringLiteral: String = {
+    // remove single quotes
+    <s:SINGLE_QUOTED_STRING_LIT> => s.chars().skip(1).take(s.len() - 2).collect(),
+}
+
+
+//
+// Macros
+//
 CommaSeparatedList<T>: Vec<T> = {
     <mut v:(<T> ",")*> <e:T?> => match e {
         None => v,
@@ -95,4 +187,13 @@ CommaSeparatedList<T>: Vec<T> = {
             v
         }
     }
+};
+
+
+Ident: ast::Ident = {
+    ID => ast::Ident::new(<>.to_string()),
+};
+
+LengthSpecification: usize = {
+    "(" <length: UnsignedIntegerLiteral> ")" => length,
 };
