@@ -1,5 +1,8 @@
-use super::{DataType, ColumnConstraintKind, Ident, ColumnConstraint, ColumnDef, CreateTableStatement, Statement, Literal, SelectStatement, BinaryOp};
-use std::fmt::{Debug, Display};
+use super::{
+    BinaryOp, ColumnConstraint, ColumnConstraintKind, ColumnDef, CreateTableStatement, DataType,
+    Ident, Literal, SelectStatement, Statement,
+};
+use std::fmt::Display;
 
 fn format_type_with_optional_length(
     f: &mut std::fmt::Formatter,
@@ -45,19 +48,24 @@ impl Display for ColumnConstraint {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.name {
             None => write!(f, "{}", self.constraint),
-            Some(name) => write!(f, "CONSTRAINT {} {}", name, self.constraint)
+            Some(name) => write!(f, "CONSTRAINT {} {}", name, self.constraint),
         }
     }
 }
 
 impl Display for ColumnDef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {}",
-            self.name,
-            self.column_type
-        )?;
+        write!(f, "{} {}", self.name, self.column_type)?;
         if !self.constraints.is_empty() {
-            write!(f, " {}", self.constraints.iter().map(|c| c.to_string()).collect::<Vec<_>>().join(" "))?;
+            write!(
+                f,
+                " {}",
+                self.constraints
+                    .iter()
+                    .map(|c| c.to_string())
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            )?;
         }
         Ok(())
     }
@@ -65,9 +73,15 @@ impl Display for ColumnDef {
 
 impl Display for CreateTableStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "CREATE TABLE {} ({});",
+        write!(
+            f,
+            "CREATE TABLE {} ({});",
             self.name,
-            self.columns.iter().map(|c| c.to_string()).collect::<Vec<_>>().join(", ")
+            self.columns
+                .iter()
+                .map(|c| c.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
         )
     }
 }
@@ -76,7 +90,7 @@ impl Display for Statement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::CreateTable(s) => write!(f, "{}", s),
-            _ => todo!()
+            _ => todo!(),
         }
     }
 }

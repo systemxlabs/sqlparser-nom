@@ -1,4 +1,4 @@
-mod pretty_printing;
+mod display;
 
 #[derive(Debug)]
 pub enum Statement {
@@ -12,7 +12,6 @@ pub struct CreateTableStatement {
     pub name: Ident,
     pub columns: Vec<ColumnDef>,
 }
-
 
 #[derive(Debug)]
 pub struct SelectStatement {
@@ -125,5 +124,5 @@ pub enum DataType {
     SmallInt(Option<usize>),
     Integer(Option<usize>),
     BigInt(Option<usize>),
-    Varchar(Option<usize>)
+    Varchar(Option<usize>),
 }
