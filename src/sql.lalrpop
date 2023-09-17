@@ -3,20 +3,26 @@ use crate::ast;
 grammar;
 
 match {
-    r"(?i)smallint" => "SMALLINT",
-    r"(?i)int" => "INT",
-    r"(?i)integer" => "INTEGER",
+    // keywords
+    r"(?i)as" => "AS",
     r"(?i)bigint" => "BIGINT",
     r"(?i)bool" => "BOOL",
     r"(?i)boolean" => "BOOLEAN",
+    r"(?i)create" => "CREATE",
+    r"(?i)constraint" => "CONSTRAINT",
+    r"(?i)from" => "FROM",
+    r"(?i)int" => "INT",
+    r"(?i)integer" => "INTEGER",
+    r"(?i)key" => "KEY",
     r"(?i)not" => "NOT",
     r"(?i)null" => "NULL",
     r"(?i)primary" => "PRIMARY",
-    r"(?i)key" => "KEY",
-    r"(?i)constraint" => "CONSTRAINT",
-    r"(?i)create" => "CREATE",
+    r"(?i)select" => "SELECT",
+    r"(?i)smallint" => "SMALLINT",
     r"(?i)table" => "TABLE",
     r"(?i)varchar" => "VARCHAR",
+    r"(?i)where" => "WHERE",
+
 
     "," => ",",
     "." => ".",
@@ -49,28 +55,20 @@ pub Statement: ast::Statement = {
     CreateTableStatement => ast::Statement::CreateTable(<>),
 };
 CreateTableStatement: ast::CreateTableStatement = {
-    "CREATE" "TABLE" <name: Ident> "(" <columns: ColumnDefList> ")"
+    "CREATE" "TABLE" <name: Ident> "(" <columns: CommaSeparatedList<ColumnDef>> ")"
         => {
             ast::CreateTableStatement { name, columns }   
         },
 };
 
 
-ColumnDefList: Vec<ast::ColumnDef> = {
-    CommaSeparatedList<ColumnDef>
-}
-
 ColumnDef: ast::ColumnDef = {
-    <name: Ident> <column_type: DataType> <constraints: ColumnConstraintList>
+    <name: Ident> <column_type: DataType> <constraints: ColumnConstraint*>
         => ast::ColumnDef {
             name,
             column_type,
             constraints
         },
-};
-
-ColumnConstraintList: Vec<ast::ColumnConstraint> = {
-    ColumnConstraint*
 };
 
 ColumnConstraint: ast::ColumnConstraint = {
@@ -84,25 +82,59 @@ ConstraintName: ast::Ident = {
     "CONSTRAINT" <name: Ident> => name,
 };
 
+pub SelectItem: ast::SelectItem = {
+    Expr => ast::SelectItem::UnnamedExpr(<>),
+    <expr:Expr> "AS" <alias:Ident> => ast::SelectItem::ExprWithAlias { expr, alias },
+    "*" => ast::SelectItem::Wildcard,
+};
+
+
+//
+// SetExpr
+//
+pub SetExpr: ast::SetExpr = {
+    SelectSetExpr,
+};
+SelectSetExpr: ast::SetExpr = {
+    "SELECT" <projection:CommaSeparatedList<SelectItem>> "FROM" <from:Ident> "WHERE"? <where_clause:Expr?> => ast::SetExpr::Select { projection, from, where_clause },
+};
+
 
 //
 // Expr
 //
 pub Expr: ast::Expr = {
-    LiteralExpr,
+    CmpBinaryOpExpr,
 };
-pub LiteralExpr: ast::Expr = {
-    Literal => ast::Expr::Literal(<>)
+CmpBinaryOpExpr: ast::Expr = {
+    <l:CmpBinaryOpExpr> ">" <r:AddSubBinaryOpExpr> => ast::Expr::BinaryOp {left: Box::new(l), op: ast::BinaryOp::Gt, right: Box::new(r)},
+    <l:CmpBinaryOpExpr> "<" <r:AddSubBinaryOpExpr> => ast::Expr::BinaryOp {left: Box::new(l), op: ast::BinaryOp::Lt, right: Box::new(r)},
+    <l:CmpBinaryOpExpr> ">=" <r:AddSubBinaryOpExpr> => ast::Expr::BinaryOp {left: Box::new(l), op: ast::BinaryOp::GtEq, right: Box::new(r)},
+    <l:CmpBinaryOpExpr> "<=" <r:AddSubBinaryOpExpr> => ast::Expr::BinaryOp {left: Box::new(l), op: ast::BinaryOp::LtEq, right: Box::new(r)},
+    <l:CmpBinaryOpExpr> "=" <r:AddSubBinaryOpExpr> => ast::Expr::BinaryOp {left: Box::new(l), op: ast::BinaryOp::Eq, right: Box::new(r)},
+    <l:CmpBinaryOpExpr> "!=" <r:AddSubBinaryOpExpr> => ast::Expr::BinaryOp {left: Box::new(l), op: ast::BinaryOp::NotEq, right: Box::new(r)},
+    AddSubBinaryOpExpr,
 };
-MulDivBinaryOpExpr: ast::Expr = {
-    <l:MulDivBinaryOpExpr> "*" <r:LiteralExpr> => ast::Expr::BinaryOp {left: Box::new(l), op: ast::BinaryOp::Mul, right: Box::new(r)},
-    <l:MulDivBinaryOpExpr> "/" <r:LiteralExpr> => ast::Expr::BinaryOp {left: Box::new(l), op: ast::BinaryOp::Div, right: Box::new(r)},
-    LiteralExpr,
-};
-pub AddSubBinaryOpExpr: ast::Expr = {
+AddSubBinaryOpExpr: ast::Expr = {
     <l:AddSubBinaryOpExpr> "+" <r:MulDivBinaryOpExpr> => ast::Expr::BinaryOp {left: Box::new(l), op: ast::BinaryOp::Add, right: Box::new(r)},
     <l:AddSubBinaryOpExpr> "-" <r:MulDivBinaryOpExpr> => ast::Expr::BinaryOp {left: Box::new(l), op: ast::BinaryOp::Sub, right: Box::new(r)},
     MulDivBinaryOpExpr,
+};
+MulDivBinaryOpExpr: ast::Expr = {
+    <l:MulDivBinaryOpExpr> "*" <r:ParenthesizedExpr> => ast::Expr::BinaryOp {left: Box::new(l), op: ast::BinaryOp::Mul, right: Box::new(r)},
+    <l:MulDivBinaryOpExpr> "/" <r:ParenthesizedExpr> => ast::Expr::BinaryOp {left: Box::new(l), op: ast::BinaryOp::Div, right: Box::new(r)},
+    ParenthesizedExpr,
+};
+ParenthesizedExpr: ast::Expr = {
+    "(" <expr:Expr> ")" => expr,
+    LiteralExpr,
+    IdentifierExpr,
+};
+LiteralExpr: ast::Expr = {
+    Literal => ast::Expr::Literal(<>),
+};
+IdentifierExpr: ast::Expr = {
+    Ident => ast::Expr::Identifier(<>),
 };
 
 
@@ -180,12 +212,9 @@ StringLiteral: String = {
 // Macros
 //
 CommaSeparatedList<T>: Vec<T> = {
-    <mut v:(<T> ",")*> <e:T?> => match e {
-        None => v,
-        Some(e) => {
-            v.push(e);
-            v
-        }
+    <mut v:(<T> ",")*> <e:T> => {
+        v.push(e);
+        v
     }
 };
 

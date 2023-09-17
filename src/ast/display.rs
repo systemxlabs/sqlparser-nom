@@ -1,6 +1,6 @@
 use super::{
     BinaryOp, ColumnConstraint, ColumnConstraintKind, ColumnDef, CreateTableStatement, DataType,
-    Ident, Literal, SelectStatement, Statement,
+    Expr, Ident, Literal, SelectItem, SetExpr, Statement, UnaryOp,
 };
 use std::fmt::Display;
 
@@ -119,6 +119,64 @@ impl Display for BinaryOp {
             Self::LtEq => write!(f, "<="),
             Self::Eq => write!(f, "="),
             Self::NotEq => write!(f, "!="),
+        }
+    }
+}
+
+impl Display for Expr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Identifier(ident) => write!(f, "{}", ident),
+            Self::Literal(literal) => write!(f, "{}", literal),
+            Self::Alias { expr, alias } => write!(f, "{} AS {}", expr, alias),
+            Self::UnaryOp { op, expr } => write!(f, "{}{}", op, expr),
+            Self::BinaryOp { left, op, right } => write!(f, "{} {} {}", left, op, right),
+        }
+    }
+}
+
+impl Display for UnaryOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Plus => write!(f, "+"),
+            Self::Minus => write!(f, "-"),
+        }
+    }
+}
+
+impl Display for SelectItem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::UnnamedExpr(expr) => write!(f, "{}", expr),
+            Self::ExprWithAlias { expr, alias } => write!(f, "{} AS {}", expr, alias),
+            Self::Wildcard => write!(f, "*"),
+        }
+    }
+}
+
+impl Display for SetExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Select {
+                projection,
+                from,
+                where_clause,
+            } => {
+                write!(
+                    f,
+                    "SELECT {} FROM {}",
+                    projection
+                        .iter()
+                        .map(|p| p.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                    from
+                )?;
+                if let Some(where_clause) = where_clause {
+                    write!(f, " WHERE {}", where_clause)?;
+                }
+                Ok(())
+            }
         }
     }
 }

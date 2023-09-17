@@ -22,14 +22,11 @@ pub struct SelectStatement {
 
 #[derive(Debug)]
 pub enum SetExpr {
-    Select(Select),
-}
-
-#[derive(Debug)]
-pub struct Select {
-    pub projection: Vec<SelectItem>,
-    pub from: Ident,
-    pub where_clause: Expr,
+    Select {
+        projection: Vec<SelectItem>,
+        from: Ident,
+        where_clause: Option<Expr>,
+    },
 }
 
 #[derive(Debug)]
@@ -44,6 +41,10 @@ pub enum Expr {
     /// Identifier e.g. table name or column name
     Identifier(Ident),
     Literal(Literal),
+    Alias {
+        expr: Box<Expr>,
+        alias: Ident,
+    },
     UnaryOp {
         op: UnaryOp,
         expr: Box<Expr>,
