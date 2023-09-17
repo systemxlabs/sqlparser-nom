@@ -11,5 +11,5 @@ fn parse_create_table_statement() {
     ",
     );
     assert!(result.is_ok());
-    println!("result: {}", result.unwrap());
+    println!("result: {:?}", result.unwrap());
 }

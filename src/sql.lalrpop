@@ -14,8 +14,10 @@ match {
     r"(?i)int" => "INT",
     r"(?i)integer" => "INTEGER",
     r"(?i)key" => "KEY",
+    r"(?i)limit" => "LIMIT",
     r"(?i)not" => "NOT",
     r"(?i)null" => "NULL",
+    r"(?i)offset" => "OFFSET",
     r"(?i)primary" => "PRIMARY",
     r"(?i)select" => "SELECT",
     r"(?i)smallint" => "SMALLINT",
@@ -53,14 +55,26 @@ match {
 //
 pub Statement: ast::Statement = {
     CreateTableStatement => ast::Statement::CreateTable(<>),
+    SelectStatement => ast::Statement::Select(<>),
 };
 CreateTableStatement: ast::CreateTableStatement = {
-    "CREATE" "TABLE" <name: Ident> "(" <columns: CommaSeparatedList<ColumnDef>> ")"
-        => {
-            ast::CreateTableStatement { name, columns }   
-        },
+    "CREATE" "TABLE" <name: Ident> "(" <columns: CommaSeparatedList<ColumnDef>> ")" => {
+        ast::CreateTableStatement { name, columns }   
+    },
+};
+SelectStatement: ast::SelectStatement = {
+    <body:SetExpr> <limitoffset:LimitOffsetClause?> => {
+        let (limit, offset) = limitoffset.map_or((None, None), |(limit, offset)| (limit, offset));
+        ast::SelectStatement { body, limit, offset }
+    },
 };
 
+LimitOffsetClause: (Option<ast::Expr>, Option<ast::Expr>) = {
+    "LIMIT" <limit:Expr> => (Some(limit), None),
+    "OFFSET" <offset:Expr> => (None, Some(offset)),
+    "LIMIT" <limit:Expr> "," <offset:Expr> => (Some(limit), Some(offset)),
+    "LIMIT" <limit:Expr> "OFFSET" <offset:Expr> => (Some(limit), Some(offset)),
+};
 
 ColumnDef: ast::ColumnDef = {
     <name: Ident> <column_type: DataType> <constraints: ColumnConstraint*>

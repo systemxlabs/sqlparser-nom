@@ -1,6 +1,6 @@
 use super::{
     BinaryOp, ColumnConstraint, ColumnConstraintKind, ColumnDef, CreateTableStatement, DataType,
-    Expr, Ident, Literal, SelectItem, SetExpr, Statement, UnaryOp,
+    Expr, Ident, Literal, SelectItem, SelectStatement, SetExpr, Statement, UnaryOp,
 };
 use std::fmt::Display;
 
@@ -90,7 +90,7 @@ impl Display for Statement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::CreateTable(s) => write!(f, "{}", s),
-            _ => todo!(),
+            Self::Select(s) => write!(f, "{}", s),
         }
     }
 }
@@ -178,5 +178,18 @@ impl Display for SetExpr {
                 Ok(())
             }
         }
+    }
+}
+
+impl Display for SelectStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.body)?;
+        if let Some(limit) = &self.limit {
+            write!(f, " LIMIT {}", limit)?;
+        }
+        if let Some(offset) = &self.offset {
+            write!(f, " OFFSET {}", offset)?;
+        }
+        Ok(())
     }
 }
