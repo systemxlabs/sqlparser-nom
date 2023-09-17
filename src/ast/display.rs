@@ -1,6 +1,6 @@
 use super::{
     BinaryOp, ColumnConstraint, ColumnConstraintKind, ColumnDef, CreateTableStatement, DataType,
-    Expr, Ident, Literal, SelectItem, SelectStatement, SetExpr, Statement, UnaryOp,
+    Expr, Ident, Literal, OrderByExpr, SelectItem, SelectStatement, SetExpr, Statement, UnaryOp,
 };
 use std::fmt::Display;
 
@@ -130,7 +130,7 @@ impl Display for Expr {
             Self::Literal(literal) => write!(f, "{}", literal),
             Self::Alias { expr, alias } => write!(f, "{} AS {}", expr, alias),
             Self::UnaryOp { op, expr } => write!(f, "{}{}", op, expr),
-            Self::BinaryOp { left, op, right } => write!(f, "{} {} {}", left, op, right),
+            Self::BinaryOp { left, op, right } => write!(f, "({} {} {})", left, op, right),
         }
     }
 }
@@ -184,11 +184,36 @@ impl Display for SetExpr {
 impl Display for SelectStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.body)?;
+        if self.order_by.len() > 0 {
+            write!(
+                f,
+                " ORDER BY {}",
+                self.order_by
+                    .iter()
+                    .map(|o| o.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )?;
+        }
         if let Some(limit) = &self.limit {
             write!(f, " LIMIT {}", limit)?;
         }
         if let Some(offset) = &self.offset {
             write!(f, " OFFSET {}", offset)?;
+        }
+        Ok(())
+    }
+}
+
+impl Display for OrderByExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.expr)?;
+        if let Some(asc) = &self.asc {
+            if *asc {
+                write!(f, " ASC")?;
+            } else {
+                write!(f, " DESC")?;
+            }
         }
         Ok(())
     }

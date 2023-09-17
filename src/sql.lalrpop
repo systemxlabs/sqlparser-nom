@@ -5,11 +5,14 @@ grammar;
 match {
     // keywords
     r"(?i)as" => "AS",
+    r"(?i)asc" => "ASC",
     r"(?i)bigint" => "BIGINT",
     r"(?i)bool" => "BOOL",
     r"(?i)boolean" => "BOOLEAN",
+    r"(?i)by" => "BY",
     r"(?i)create" => "CREATE",
     r"(?i)constraint" => "CONSTRAINT",
+    r"(?i)desc" => "DESC",
     r"(?i)from" => "FROM",
     r"(?i)int" => "INT",
     r"(?i)integer" => "INTEGER",
@@ -18,6 +21,7 @@ match {
     r"(?i)not" => "NOT",
     r"(?i)null" => "NULL",
     r"(?i)offset" => "OFFSET",
+    r"(?i)order" => "ORDER",
     r"(?i)primary" => "PRIMARY",
     r"(?i)select" => "SELECT",
     r"(?i)smallint" => "SMALLINT",
@@ -63,9 +67,9 @@ CreateTableStatement: ast::CreateTableStatement = {
     },
 };
 SelectStatement: ast::SelectStatement = {
-    <body:SetExpr> <limitoffset:LimitOffsetClause?> => {
+    <body:SetExpr> <order_by:OrderByClause?> <limitoffset:LimitOffsetClause?> => {
         let (limit, offset) = limitoffset.map_or((None, None), |(limit, offset)| (limit, offset));
-        ast::SelectStatement { body, limit, offset }
+        ast::SelectStatement { body, order_by: order_by.unwrap_or(Vec::new()), limit, offset }
     },
 };
 
@@ -96,10 +100,19 @@ ConstraintName: ast::Ident = {
     "CONSTRAINT" <name: Ident> => name,
 };
 
-pub SelectItem: ast::SelectItem = {
+SelectItem: ast::SelectItem = {
     Expr => ast::SelectItem::UnnamedExpr(<>),
     <expr:Expr> "AS" <alias:Ident> => ast::SelectItem::ExprWithAlias { expr, alias },
     "*" => ast::SelectItem::Wildcard,
+};
+
+pub OrderByClause: Vec<ast::OrderByExpr> = {
+    "ORDER" "BY" <orders:CommaSeparatedList<OrderByExpr>> => <>,
+};
+OrderByExpr: ast::OrderByExpr = {
+    <expr:Expr> "ASC" => ast::OrderByExpr { expr, asc: Some(true) },
+    <expr:Expr> "DESC" => ast::OrderByExpr { expr, asc: Some(false) },
+    <expr:Expr> => ast::OrderByExpr { expr, asc: None },
 };
 
 

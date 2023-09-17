@@ -16,8 +16,15 @@ pub struct CreateTableStatement {
 #[derive(Debug)]
 pub struct SelectStatement {
     pub body: SetExpr,
+    pub order_by: Vec<OrderByExpr>,
     pub limit: Option<Expr>,
     pub offset: Option<Expr>,
+}
+
+#[derive(Debug)]
+pub struct OrderByExpr {
+    pub expr: Expr,
+    pub asc: Option<bool>,
 }
 
 #[derive(Debug)]
