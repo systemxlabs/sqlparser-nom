@@ -33,6 +33,7 @@ pub enum SetExpr {
         projection: Vec<SelectItem>,
         from: Ident,
         where_clause: Option<Expr>,
+        group_by: Vec<Expr>,
     },
 }
 

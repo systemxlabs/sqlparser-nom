@@ -172,6 +172,7 @@ impl Display for SetExpr {
                 projection,
                 from,
                 where_clause,
+                group_by,
             } => {
                 write!(
                     f,
@@ -185,6 +186,17 @@ impl Display for SetExpr {
                 )?;
                 if let Some(where_clause) = where_clause {
                     write!(f, " WHERE {}", where_clause)?;
+                }
+                if !group_by.is_empty() {
+                    write!(
+                        f,
+                        " GROUP BY {}",
+                        group_by
+                            .iter()
+                            .map(|p| p.to_string())
+                            .collect::<Vec<_>>()
+                            .join(", "),
+                    )?;
                 }
                 Ok(())
             }

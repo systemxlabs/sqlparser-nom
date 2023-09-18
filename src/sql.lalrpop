@@ -15,6 +15,7 @@ match {
     r"(?i)constraint" => "CONSTRAINT",
     r"(?i)desc" => "DESC",
     r"(?i)from" => "FROM",
+    r"(?i)group" => "GROUP",
     r"(?i)int" => "INT",
     r"(?i)integer" => "INTEGER",
     r"(?i)key" => "KEY",
@@ -108,7 +109,7 @@ SelectItem: ast::SelectItem = {
     "*" => ast::SelectItem::Wildcard,
 };
 
-pub OrderByClause: Vec<ast::OrderByExpr> = {
+OrderByClause: Vec<ast::OrderByExpr> = {
     "ORDER" "BY" <orders:CommaSeparatedList<OrderByExpr>> => <>,
 };
 OrderByExpr: ast::OrderByExpr = {
@@ -117,6 +118,9 @@ OrderByExpr: ast::OrderByExpr = {
     <expr:Expr> => ast::OrderByExpr { expr, asc: None },
 };
 
+GroupByClause: Vec<ast::Expr> = {
+    "GROUP" "BY" <exprs:CommaSeparatedList<Expr>> => <>,
+};
 
 //
 // SetExpr
@@ -125,7 +129,8 @@ pub SetExpr: ast::SetExpr = {
     SelectSetExpr,
 };
 SelectSetExpr: ast::SetExpr = {
-    "SELECT" <projection:CommaSeparatedList<SelectItem>> "FROM" <from:Ident> "WHERE"? <where_clause:Expr?> => ast::SetExpr::Select { projection, from, where_clause },
+    "SELECT" <projection:CommaSeparatedList<SelectItem>> "FROM" <from:Ident> "WHERE"? <where_clause:Expr?> <group_by:GroupByClause?> => 
+        ast::SetExpr::Select { projection, from, where_clause, group_by: group_by.unwrap_or(Vec::new()) },
 };
 
 
