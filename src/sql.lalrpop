@@ -4,6 +4,7 @@ grammar;
 
 match {
     // keywords
+    r"(?i)and" => "AND",
     r"(?i)as" => "AS",
     r"(?i)asc" => "ASC",
     r"(?i)bigint" => "BIGINT",
@@ -21,6 +22,7 @@ match {
     r"(?i)not" => "NOT",
     r"(?i)null" => "NULL",
     r"(?i)offset" => "OFFSET",
+    r"(?i)or" => "OR",
     r"(?i)order" => "ORDER",
     r"(?i)primary" => "PRIMARY",
     r"(?i)select" => "SELECT",
@@ -131,8 +133,13 @@ SelectSetExpr: ast::SetExpr = {
 // Expr
 //
 pub Expr: ast::Expr = {
-    CmpBinaryOpExpr,
+    AndOrBinaryOpExpr,
 };
+AndOrBinaryOpExpr: ast::Expr = {
+    <l:AndOrBinaryOpExpr> "AND" <r:CmpBinaryOpExpr> => ast::Expr::BinaryOp {left: Box::new(l), op: ast::BinaryOp::And, right: Box::new(r)},
+    <l:AndOrBinaryOpExpr> "OR" <r:CmpBinaryOpExpr> => ast::Expr::BinaryOp {left: Box::new(l), op: ast::BinaryOp::Or, right: Box::new(r)},
+    CmpBinaryOpExpr,
+}
 CmpBinaryOpExpr: ast::Expr = {
     <l:CmpBinaryOpExpr> ">" <r:AddSubBinaryOpExpr> => ast::Expr::BinaryOp {left: Box::new(l), op: ast::BinaryOp::Gt, right: Box::new(r)},
     <l:CmpBinaryOpExpr> "<" <r:AddSubBinaryOpExpr> => ast::Expr::BinaryOp {left: Box::new(l), op: ast::BinaryOp::Lt, right: Box::new(r)},

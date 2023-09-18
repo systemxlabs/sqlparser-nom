@@ -119,6 +119,8 @@ impl Display for BinaryOp {
             Self::LtEq => write!(f, "<="),
             Self::Eq => write!(f, "="),
             Self::NotEq => write!(f, "!="),
+            Self::And => write!(f, "AND"),
+            Self::Or => write!(f, "OR"),
         }
     }
 }

@@ -89,6 +89,10 @@ pub enum BinaryOp {
     LtEq,
     Eq,
     NotEq,
+
+    // and or
+    And,
+    Or,
 }
 
 /// Literal values
