@@ -127,6 +127,15 @@ impl Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Identifier(ident) => write!(f, "{}", ident),
+            Self::CompoundIdentifier(idents) => write!(
+                f,
+                "{}",
+                idents
+                    .iter()
+                    .map(|p| p.to_string())
+                    .collect::<Vec<_>>()
+                    .join("."),
+            ),
             Self::Literal(literal) => write!(f, "{}", literal),
             Self::Alias { expr, alias } => write!(f, "{} AS {}", expr, alias),
             Self::UnaryOp { op, expr } => write!(f, "{}{}", op, expr),

@@ -156,6 +156,7 @@ ParenthesizedExpr: ast::Expr = {
     "(" <expr:Expr> ")" => expr,
     LiteralExpr,
     IdentifierExpr,
+    CompoundIdentifierExpr,
 };
 LiteralExpr: ast::Expr = {
     Literal => ast::Expr::Literal(<>),
@@ -163,7 +164,12 @@ LiteralExpr: ast::Expr = {
 IdentifierExpr: ast::Expr = {
     Ident => ast::Expr::Identifier(<>),
 };
-
+pub CompoundIdentifierExpr: ast::Expr = {
+    <ident:Ident> "." <mut idents:FullstopSeparatedList<Ident>> => {
+        idents.insert(0, ident);
+        ast::Expr::CompoundIdentifier(idents)
+    },
+};
 
 
 UnaryOp: ast::UnaryOp = {
@@ -240,6 +246,12 @@ StringLiteral: String = {
 //
 CommaSeparatedList<T>: Vec<T> = {
     <mut v:(<T> ",")*> <e:T> => {
+        v.push(e);
+        v
+    }
+};
+FullstopSeparatedList<T>: Vec<T> = {
+    <mut v:(<T> ".")*> <e:T> => {
         v.push(e);
         v
     }

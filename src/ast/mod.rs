@@ -47,6 +47,8 @@ pub enum SelectItem {
 pub enum Expr {
     /// Identifier e.g. table name or column name
     Identifier(Ident),
+    /// Multi-part identifier, e.g. `table_alias.column` or `schema.table.col`
+    CompoundIdentifier(Vec<Ident>),
     Literal(Literal),
     Alias {
         expr: Box<Expr>,
@@ -96,6 +98,9 @@ pub enum Literal {
     UnsignedInteger(usize),
     UnsignedFloat(f64),
 }
+
+/// An object name. e.g. database.table.column
+pub struct ObjectName(Vec<Ident>);
 
 /// An identifier
 #[derive(derive_new::new, Debug)]
