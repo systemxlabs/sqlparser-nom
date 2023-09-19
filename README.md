@@ -1,5 +1,5 @@
-# sqlparser-lalrpop 
-A experimental SQL query parser using LALRPOP.
+# sqlparser-nom 
+A experimental SQL query parser using nom.
 
 Query
 - [x] Select
