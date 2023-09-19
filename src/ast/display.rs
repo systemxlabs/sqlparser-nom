@@ -1,7 +1,7 @@
 use super::{
     BinaryOp, Expr, Ident, Literal, OrderByExpr, SelectItem, SelectStatement, SetExpr, UnaryOp,
 };
-use std::fmt::Display;
+use std::fmt::{write, Display};
 
 impl Display for Ident {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -42,16 +42,19 @@ impl Display for BinaryOp {
 impl Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Identifier(ident) => write!(f, "{}", ident),
-            Self::CompoundIdentifier(idents) => write!(
-                f,
-                "{}",
-                idents
-                    .iter()
-                    .map(|p| p.to_string())
-                    .collect::<Vec<_>>()
-                    .join("."),
-            ),
+            Self::ColumnRef {
+                database,
+                table,
+                column,
+            } => {
+                if let Some(database) = database {
+                    write!(f, "{}.", database)?;
+                }
+                if let Some(table) = table {
+                    write!(f, "{}.", table)?;
+                }
+                write!(f, "{}", column)
+            }
             Self::Literal(literal) => write!(f, "{}", literal),
             Self::Alias { expr, alias } => write!(f, "{} AS {}", expr, alias),
             Self::UnaryOp { op, expr } => write!(f, "{}{}", op, expr),

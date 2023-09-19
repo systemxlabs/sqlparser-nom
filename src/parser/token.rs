@@ -2,6 +2,8 @@ use std::ops::Range;
 
 use logos::{Lexer, Logos};
 
+pub use self::TokenKind::*;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token<'a> {
     // Source sql
@@ -227,4 +229,36 @@ pub enum TokenKind {
 
     #[token("LAST", ignore(ascii_case))]
     LAST,
+}
+impl TokenKind {
+    pub fn is_literal(&self) -> bool {
+        matches!(self, LiteralInteger | LiteralFloat | QuotedString)
+    }
+
+    pub fn is_keyword(&self) -> bool {
+        !matches!(
+            self,
+            Ident
+                | QuotedString
+                | LiteralInteger
+                | LiteralFloat
+                | Eq
+                | NotEq
+                | Lt
+                | Gt
+                | LtEq
+                | GtEq
+                | Plus
+                | Minus
+                | Multiply
+                | Divide
+                | IntDiv
+                | Modulo
+                | StringConcat
+                | LParen
+                | RParen
+                | Comma
+                | Dot
+        )
+    }
 }

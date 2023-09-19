@@ -33,10 +33,11 @@ pub enum SelectItem {
 
 #[derive(Debug)]
 pub enum Expr {
-    /// Identifier e.g. table name or column name
-    Identifier(Ident),
-    /// Multi-part identifier, e.g. `table_alias.column` or `schema.table.col`
-    CompoundIdentifier(Vec<Ident>),
+    ColumnRef {
+        database: Option<Ident>,
+        table: Option<Ident>,
+        column: Ident,
+    },
     Literal(Literal),
     Alias {
         expr: Box<Expr>,
@@ -95,7 +96,7 @@ pub enum Literal {
 pub struct ObjectName(Vec<Ident>);
 
 /// An identifier
-#[derive(derive_new::new, Debug)]
+#[derive(derive_new::new, Debug, PartialEq, Eq)]
 pub struct Ident {
     /// The value of the identifier without quotes.
     pub value: String,

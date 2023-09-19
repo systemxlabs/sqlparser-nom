@@ -1,4 +1,4 @@
-use sqlparser_nom::token::{Token, TokenKind, Tokenizer};
+use sqlparser_nom::parser::token::{Token, TokenKind, Tokenizer};
 
 #[test]
 pub fn tokenize() {
