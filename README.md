@@ -2,8 +2,7 @@
 A experimental SQL query parser using LALRPOP.
 
 Query
-- [ ] Select
-- [ ] Distinct
+- [x] Select
 - [ ] From
 - [x] Where
 - [x] Order by

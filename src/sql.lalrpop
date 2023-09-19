@@ -60,16 +60,7 @@ match {
 //
 // Statements
 //
-pub Statement: ast::Statement = {
-    CreateTableStatement => ast::Statement::CreateTable(<>),
-    SelectStatement => ast::Statement::Select(<>),
-};
-CreateTableStatement: ast::CreateTableStatement = {
-    "CREATE" "TABLE" <name: Ident> "(" <columns: CommaSeparatedList<ColumnDef>> ")" => {
-        ast::CreateTableStatement { name, columns }   
-    },
-};
-SelectStatement: ast::SelectStatement = {
+pub SelectStatement: ast::SelectStatement = {
     <body:SetExpr> <order_by:OrderByClause?> <limitoffset:LimitOffsetClause?> => {
         let (limit, offset) = limitoffset.map_or((None, None), |(limit, offset)| (limit, offset));
         ast::SelectStatement { body, order_by: order_by.unwrap_or(Vec::new()), limit, offset }
@@ -81,26 +72,6 @@ LimitOffsetClause: (Option<ast::Expr>, Option<ast::Expr>) = {
     "OFFSET" <offset:Expr> => (None, Some(offset)),
     "LIMIT" <limit:Expr> "," <offset:Expr> => (Some(limit), Some(offset)),
     "LIMIT" <limit:Expr> "OFFSET" <offset:Expr> => (Some(limit), Some(offset)),
-};
-
-ColumnDef: ast::ColumnDef = {
-    <name: Ident> <column_type: DataType> <constraints: ColumnConstraint*>
-        => ast::ColumnDef {
-            name,
-            column_type,
-            constraints
-        },
-};
-
-ColumnConstraint: ast::ColumnConstraint = {
-    <name: ConstraintName?> "NOT" "NULL" 
-        => ast::ColumnConstraint { name, constraint: ast::ColumnConstraintKind::NotNull },
-    <name: ConstraintName?> "PRIMARY" "KEY" 
-        => ast::ColumnConstraint { name, constraint: ast::ColumnConstraintKind::PrimaryKey },
-};
-
-ConstraintName: ast::Ident = {
-    "CONSTRAINT" <name: Ident> => name,
 };
 
 SelectItem: ast::SelectItem = {
@@ -201,35 +172,6 @@ pub BinaryOp: ast::BinaryOp = {
     "<=" => ast::BinaryOp::LtEq,
     "=" => ast::BinaryOp::Eq,
     "!=" => ast::BinaryOp::NotEq,
-};
-
-
-//
-// Data Types
-//
-DataType: ast::DataType = {
-    BooleanType,
-    SmallIntType,
-    IntegerType,
-    BigIntType,
-    VarcharType,
-};
-BooleanType: ast::DataType = {
-    "BOOL" => ast::DataType::Boolean,
-    "BOOLEAN" => ast::DataType::Boolean,
-};
-SmallIntType: ast::DataType = {
-    "SMALLINT" <length: LengthSpecification?> => ast::DataType::SmallInt(length),
-};
-IntegerType: ast::DataType = {
-    "INT" <length: LengthSpecification?> => ast::DataType::Integer(length),
-    "INTEGER" <length: LengthSpecification?> => ast::DataType::Integer(length),
-};
-BigIntType: ast::DataType = {
-    "BIGINT" <length: LengthSpecification?> => ast::DataType::BigInt(length)
-};
-VarcharType: ast::DataType = {
-    "VARCHAR" <length: LengthSpecification?> => ast::DataType::Varchar(length)
 };
 
 

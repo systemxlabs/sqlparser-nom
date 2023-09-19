@@ -1,19 +1,6 @@
 mod display;
 
 #[derive(Debug)]
-pub enum Statement {
-    CreateTable(CreateTableStatement),
-    Select(SelectStatement),
-}
-
-/// CREATE TABLE
-#[derive(Debug)]
-pub struct CreateTableStatement {
-    pub name: Ident,
-    pub columns: Vec<ColumnDef>,
-}
-
-#[derive(Debug)]
 pub struct SelectStatement {
     pub body: SetExpr,
     pub order_by: Vec<OrderByExpr>,
@@ -112,35 +99,4 @@ pub struct ObjectName(Vec<Ident>);
 pub struct Ident {
     /// The value of the identifier without quotes.
     pub value: String,
-}
-
-/// Representation of a new column to define in a table
-#[derive(Debug)]
-pub struct ColumnDef {
-    pub name: Ident,
-    pub column_type: DataType,
-    pub constraints: Vec<ColumnConstraint>,
-}
-
-#[derive(Debug)]
-pub struct ColumnConstraint {
-    pub name: Option<Ident>,
-    pub constraint: ColumnConstraintKind,
-}
-
-#[derive(Debug)]
-pub enum ColumnConstraintKind {
-    PrimaryKey,
-    NotNull,
-}
-
-/// SQL data types
-#[derive(Debug)]
-pub enum DataType {
-    Boolean,
-    TinyInt(Option<usize>),
-    SmallInt(Option<usize>),
-    Integer(Option<usize>),
-    BigInt(Option<usize>),
-    Varchar(Option<usize>),
 }

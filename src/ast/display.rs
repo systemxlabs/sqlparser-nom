@@ -1,97 +1,11 @@
 use super::{
-    BinaryOp, ColumnConstraint, ColumnConstraintKind, ColumnDef, CreateTableStatement, DataType,
-    Expr, Ident, Literal, OrderByExpr, SelectItem, SelectStatement, SetExpr, Statement, UnaryOp,
+    BinaryOp, Expr, Ident, Literal, OrderByExpr, SelectItem, SelectStatement, SetExpr, UnaryOp,
 };
 use std::fmt::Display;
-
-fn format_type_with_optional_length(
-    f: &mut std::fmt::Formatter,
-    sql_type: &'static str,
-    len: &Option<usize>,
-) -> std::fmt::Result {
-    write!(f, "{sql_type}")?;
-    if let Some(len) = len {
-        write!(f, "({len})")?;
-    }
-    Ok(())
-}
-
-impl Display for DataType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Boolean => write!(f, "BOOLEAN"),
-            Self::TinyInt(len) => format_type_with_optional_length(f, "TINYINT", len),
-            Self::SmallInt(len) => format_type_with_optional_length(f, "SMALLINT", len),
-            Self::Integer(len) => format_type_with_optional_length(f, "INTEGER", len),
-            Self::BigInt(len) => format_type_with_optional_length(f, "BIGINT", len),
-            Self::Varchar(len) => format_type_with_optional_length(f, "VARCHAR", len),
-        }
-    }
-}
-
-impl Display for ColumnConstraintKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::PrimaryKey => write!(f, "PRIMARY KEY"),
-            Self::NotNull => write!(f, "NOT NULL"),
-        }
-    }
-}
 
 impl Display for Ident {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{0}", self.value)
-    }
-}
-
-impl Display for ColumnConstraint {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self.name {
-            None => write!(f, "{}", self.constraint),
-            Some(name) => write!(f, "CONSTRAINT {} {}", name, self.constraint),
-        }
-    }
-}
-
-impl Display for ColumnDef {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {}", self.name, self.column_type)?;
-        if !self.constraints.is_empty() {
-            write!(
-                f,
-                " {}",
-                self.constraints
-                    .iter()
-                    .map(|c| c.to_string())
-                    .collect::<Vec<_>>()
-                    .join(" ")
-            )?;
-        }
-        Ok(())
-    }
-}
-
-impl Display for CreateTableStatement {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "CREATE TABLE {} ({});",
-            self.name,
-            self.columns
-                .iter()
-                .map(|c| c.to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-        )
-    }
-}
-
-impl Display for Statement {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::CreateTable(s) => write!(f, "{}", s),
-            Self::Select(s) => write!(f, "{}", s),
-        }
     }
 }
 

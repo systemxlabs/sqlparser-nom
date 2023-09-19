@@ -2,11 +2,11 @@ use sqlparser_lalrpop::sql;
 
 #[test]
 pub fn parse_select_statement() {
-    let result = sql::StatementParser::new().parse("select * from t");
+    let result = sql::SelectStatementParser::new().parse("select * from t");
     assert!(result.is_ok());
     println!("result: {}", result.unwrap());
 
-    let result = sql::StatementParser::new().parse(
+    let result = sql::SelectStatementParser::new().parse(
         "
 select a, t.b, c 
 from t 
