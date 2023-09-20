@@ -5,7 +5,6 @@ pub mod statement;
 /// An identifier
 #[derive(derive_new::new, Debug, PartialEq, Eq)]
 pub struct Ident {
-    /// The value of the identifier without quotes.
     pub value: String,
 }
 impl std::fmt::Display for Ident {

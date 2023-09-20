@@ -9,11 +9,11 @@ impl PError {
 }
 
 impl nom::error::ParseError<Input<'_>> for PError {
-    fn from_error_kind(input: Input<'_>, kind: nom::error::ErrorKind) -> Self {
+    fn from_error_kind(_: Input<'_>, _: nom::error::ErrorKind) -> Self {
         PError("parse error".to_string())
     }
 
-    fn append(input: Input<'_>, kind: nom::error::ErrorKind, other: Self) -> Self {
+    fn append(_: Input<'_>, _: nom::error::ErrorKind, other: Self) -> Self {
         other
     }
 }

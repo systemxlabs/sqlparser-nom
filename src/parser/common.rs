@@ -1,3 +1,4 @@
+use nom::multi::{separated_list0, separated_list1};
 use nom::Slice;
 
 use crate::ast::Ident;
@@ -7,6 +8,13 @@ use super::{
     token::{Token, TokenKind},
     IResult, Input,
 };
+
+pub fn match_text(text: &'static str) -> impl FnMut(Input) -> IResult<&Token> {
+    move |i| match i.get(0).filter(|token| token.text() == text) {
+        Some(token) => Ok((i.slice(1..), token)),
+        None => PError::from("text does not match"),
+    }
+}
 
 pub fn match_token(kind: TokenKind) -> impl FnMut(Input) -> IResult<&Token> {
     move |i| match i.get(0).filter(|token| token.kind == kind) {
@@ -27,9 +35,14 @@ pub fn ident(i: Input) -> IResult<Ident> {
     }
 }
 
-#[test]
-pub fn test() {
-    use crate::parser::tokenize_sql;
-    let tokens = tokenize_sql("a");
-    println!("{:?}", ident(&tokens));
+pub fn comma_separated_list0<'a, T>(
+    item: impl FnMut(Input<'a>) -> IResult<'a, T>,
+) -> impl FnMut(Input<'a>) -> IResult<'a, Vec<T>> {
+    separated_list0(match_text(","), item)
+}
+
+pub fn comma_separated_list1<'a, T>(
+    item: impl FnMut(Input<'a>) -> IResult<'a, T>,
+) -> impl FnMut(Input<'a>) -> IResult<'a, Vec<T>> {
+    separated_list1(match_text(","), item)
 }
