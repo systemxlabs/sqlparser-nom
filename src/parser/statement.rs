@@ -1,4 +1,4 @@
-use crate::ast::SelectStatement;
+use crate::ast::statement::SelectStatement;
 
 use super::{IResult, Input};
 

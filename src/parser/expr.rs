@@ -1,7 +1,7 @@
 use nom::Parser;
 use nom::{branch::alt, sequence::tuple};
 
-use crate::ast::Expr;
+use crate::ast::expr::Expr;
 use crate::parser::token::*;
 
 use super::{

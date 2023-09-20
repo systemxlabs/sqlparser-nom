@@ -1,4 +1,4 @@
-use crate::ast::SetExpr;
+use crate::ast::set_expr::SetExpr;
 
 use super::{IResult, Input};
 

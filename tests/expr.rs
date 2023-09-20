@@ -1,4 +1,4 @@
-use sqlparser_nom::ast::{Expr, Ident};
+use sqlparser_nom::ast::{expr::Expr, Ident};
 
 #[test]
 pub fn test_column_ref() {
