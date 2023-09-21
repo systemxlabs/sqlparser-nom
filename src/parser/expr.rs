@@ -224,6 +224,28 @@ fn infix(i: Input, left: Expr) -> Result<(Input, Expr), String> {
                 },
             ))
         }
+        TokenKind::AND => {
+            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            Ok((
+                i,
+                Expr::BinaryOp {
+                    left: Box::new(left),
+                    op: BinaryOp::And,
+                    right: Box::new(right),
+                },
+            ))
+        }
+        TokenKind::OR => {
+            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            Ok((
+                i,
+                Expr::BinaryOp {
+                    left: Box::new(left),
+                    op: BinaryOp::Or,
+                    right: Box::new(right),
+                },
+            ))
+        }
         _ => {
             return Err("The token can't be treated as infix".to_string());
         }
@@ -245,6 +267,8 @@ fn precedence(token: &Token, affix: AffixKind) -> Result<u32, String> {
         },
         AffixKind::Infix => match token.kind {
             TokenKind::RParen => Ok(0),
+            TokenKind::OR => Ok(8),
+            TokenKind::AND => Ok(9),
             TokenKind::Gt
             | TokenKind::Lt
             | TokenKind::GtEq
@@ -325,7 +349,7 @@ mod tests {
         let result = expr(&tokens).unwrap();
         println!("expr: {}", result.1);
 
-        let tokens = tokenize_sql("t1.a !=` 1");
+        let tokens = tokenize_sql("t1.a != 1 or t1.b > 2 and c = 3");
         let result = expr(&tokens).unwrap();
         println!("expr: {}", result.1);
     }
