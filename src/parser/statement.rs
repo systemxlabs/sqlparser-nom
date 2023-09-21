@@ -11,14 +11,20 @@ use super::common::comma_separated_list1;
 use super::{common::match_token, expr::expr, set_expr::select_set_expr, IResult, Input};
 
 pub fn select_stmt(i: Input) -> IResult<SelectStatement> {
-    tuple((select_set_expr, order_by_clause))(i).map(|(i, (select, order_by))| {
+    tuple((
+        select_set_expr,
+        opt(order_by_clause),
+        opt(limit_offset_clause),
+    ))(i)
+    .map(|(i, (select, order_by, limitoffset))| {
+        let (limit, offset) = limitoffset.unwrap_or((None, None));
         (
             i,
             SelectStatement {
                 body: select,
-                order_by,
-                limit: None,
-                offset: None,
+                order_by: order_by.unwrap_or(vec![]),
+                limit,
+                offset,
             },
         )
     })
@@ -34,7 +40,6 @@ fn order_by_clause(i: Input) -> IResult<Vec<OrderByExpr>> {
 }
 fn order_by_expr(i: Input) -> IResult<OrderByExpr> {
     alt((
-        expr.map(|expr| OrderByExpr { expr, asc: None }),
         tuple((expr, match_token(ASC))).map(|(expr, _)| OrderByExpr {
             expr,
             asc: Some(true),
@@ -43,6 +48,18 @@ fn order_by_expr(i: Input) -> IResult<OrderByExpr> {
             expr,
             asc: Some(false),
         }),
+        expr.map(|expr| OrderByExpr { expr, asc: None }),
+    ))(i)
+}
+
+fn limit_offset_clause(i: Input) -> IResult<(Option<Expr>, Option<Expr>)> {
+    alt((
+        tuple((match_token(LIMIT), expr, match_token(OFFSET), expr))
+            .map(|(_, limit, _, offset)| (Some(limit), Some(offset))),
+        tuple((match_token(LIMIT), expr, match_token(Comma), expr))
+            .map(|(_, limit, _, offset)| (Some(limit), Some(offset))),
+        tuple((match_token(LIMIT), expr)).map(|(_, limit)| (Some(limit), None)),
+        tuple((match_token(OFFSET), expr)).map(|(_, offset)| (None, Some(offset))),
     ))(i)
 }
 
@@ -53,7 +70,7 @@ mod tests {
         use super::select_stmt;
         use crate::parser::tokenize_sql;
 
-        let tokens = tokenize_sql("select * from t1 order by a");
+        let tokens = tokenize_sql("select a, t1.b from t1 order by a, b desc limit 1, 2");
         let result = select_stmt(&tokens);
         assert!(result.is_ok());
         let result = result.unwrap();
