@@ -16,15 +16,16 @@ pub fn select_set_expr(i: Input) -> IResult<SetExpr> {
         comma_separated_list1(select_item),
         match_token(FROM),
         ident,
+        opt(where_clause),
         opt(group_by_clause),
     ))(i)
-    .map(|(i, (_, projection, _, from, group_by))| {
+    .map(|(i, (_, projection, _, from, selection, group_by))| {
         (
             i,
             SetExpr::Select {
                 projection,
                 from,
-                where_clause: None,
+                selection,
                 group_by: group_by.unwrap_or(vec![]),
             },
         )
@@ -38,6 +39,10 @@ fn select_item(i: Input) -> IResult<SelectItem> {
             .map(|(expr, _, alias)| SelectItem::ExprWithAlias { expr, alias }),
         expr.map(|expr| SelectItem::UnnamedExpr(expr)),
     ))(i)
+}
+
+fn where_clause(i: Input) -> IResult<Expr> {
+    tuple((match_token(WHERE), expr))(i).map(|(i, (_, expr))| (i, expr))
 }
 
 fn group_by_clause(i: Input) -> IResult<Vec<Expr>> {

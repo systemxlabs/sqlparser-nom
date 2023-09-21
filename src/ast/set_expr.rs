@@ -5,7 +5,7 @@ pub enum SetExpr {
     Select {
         projection: Vec<SelectItem>,
         from: Ident,
-        where_clause: Option<Expr>,
+        selection: Option<Expr>,
         group_by: Vec<Expr>,
     },
 }
@@ -15,7 +15,7 @@ impl std::fmt::Display for SetExpr {
             Self::Select {
                 projection,
                 from,
-                where_clause,
+                selection,
                 group_by,
             } => {
                 write!(
@@ -28,8 +28,8 @@ impl std::fmt::Display for SetExpr {
                         .join(", "),
                     from
                 )?;
-                if let Some(where_clause) = where_clause {
-                    write!(f, " WHERE {}", where_clause)?;
+                if let Some(selection) = selection {
+                    write!(f, " WHERE {}", selection)?;
                 }
                 if !group_by.is_empty() {
                     write!(

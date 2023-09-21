@@ -26,6 +26,153 @@ limit 1, 2
 ```
 output ast:
 ```
+SelectStatement {
+    body: Select {
+        projection: [
+            UnnamedExpr(
+                ColumnRef {
+                    database: None,
+                    table: None,
+                    column: Ident {
+                        value: "a",
+                    },
+                },
+            ),
+            UnnamedExpr(
+                ColumnRef {
+                    database: None,
+                    table: Some(
+                        Ident {
+                            value: "t",
+                        },
+                    ),
+                    column: Ident {
+                        value: "b",
+                    },
+                },
+            ),
+            UnnamedExpr(
+                ColumnRef {
+                    database: None,
+                    table: None,
+                    column: Ident {
+                        value: "c",
+                    },
+                },
+            ),
+        ],
+        from: Ident {
+            value: "t",
+        },
+        selection: Some(
+            BinaryOp {
+                left: BinaryOp {
+                    left: ColumnRef {
+                        database: None,
+                        table: None,
+                        column: Ident {
+                            value: "a",
+                        },
+                    },
+                    op: Gt,
+                    right: BinaryOp {
+                        left: BinaryOp {
+                            left: Literal(
+                                UnsignedInteger(
+                                    1,
+                                ),
+                            ),
+                            op: Add,
+                            right: Literal(
+                                UnsignedInteger(
+                                    2,
+                                ),
+                            ),
+                        },
+                        op: Mul,
+                        right: Literal(
+                            UnsignedInteger(
+                                3,
+                            ),
+                        ),
+                    },
+                },
+                op: And,
+                right: BinaryOp {
+                    left: ColumnRef {
+                        database: None,
+                        table: None,
+                        column: Ident {
+                            value: "b",
+                        },
+                    },
+                    op: Lt,
+                    right: ColumnRef {
+                        database: None,
+                        table: None,
+                        column: Ident {
+                            value: "c",
+                        },
+                    },
+                },
+            },
+        ),
+        group_by: [
+            ColumnRef {
+                database: None,
+                table: None,
+                column: Ident {
+                    value: "a",
+                },
+            },
+            ColumnRef {
+                database: None,
+                table: None,
+                column: Ident {
+                    value: "c",
+                },
+            },
+        ],
+    },
+    order_by: [
+        OrderByExpr {
+            expr: ColumnRef {
+                database: None,
+                table: None,
+                column: Ident {
+                    value: "a",
+                },
+            },
+            asc: None,
+        },
+        OrderByExpr {
+            expr: ColumnRef {
+                database: None,
+                table: None,
+                column: Ident {
+                    value: "b",
+                },
+            },
+            asc: Some(
+                false,
+            ),
+        },
+    ],
+    limit: Some(
+        Literal(
+            UnsignedInteger(
+                1,
+            ),
+        ),
+    ),
+    offset: Some(
+        Literal(
+            UnsignedInteger(
+                2,
+            ),
+        ),
+    ),
+}
 ```
 
 ## References
