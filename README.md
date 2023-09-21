@@ -4,12 +4,12 @@ A experimental SQL query parser using nom.
 - [ ] Query
   - [ ] Select
   - [ ] From
-  - [ ] Where
-  - [ ] Order by
-  - [ ] Limit
+  - [x] Where
+  - [x] Order by
+  - [x] Limit
   - [ ] CTE
   - [ ] Into
-  - [ ] Group by
+  - [x] Group by
   - [ ] Having
   - [ ] Window
 - [x] Pratt Parsing
