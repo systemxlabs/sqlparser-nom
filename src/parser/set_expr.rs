@@ -57,13 +57,14 @@ mod tests {
         use crate::parser::common::comma_separated_list1;
         use crate::parser::{set_expr::select_item, tokenize_sql};
 
-        let tokens = tokenize_sql("*, t1.a, c as d");
-        let items = comma_separated_list1(select_item)(&tokens);
-        assert!(items.is_ok());
+        let tokens = tokenize_sql("*, t1.a, c as d, count(e)");
+        let result = comma_separated_list1(select_item)(&tokens);
+        println!("result: {:?}", result);
+        assert!(result.is_ok());
         assert_eq!(
             format!(
                 "{}",
-                items
+                result
                     .unwrap()
                     .1
                     .iter()
@@ -71,7 +72,7 @@ mod tests {
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
-            "*, t1.a, c AS d"
+            "*, t1.a, c AS d, count(e)"
         );
     }
 

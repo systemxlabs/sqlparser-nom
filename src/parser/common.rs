@@ -12,14 +12,18 @@ use super::{
 pub fn match_text(text: &'static str) -> impl FnMut(Input) -> IResult<&Token> {
     move |i| match i.get(0).filter(|token| token.text() == text) {
         Some(token) => Ok((i.slice(1..), token)),
-        None => PError::from("text does not match"),
+        None => Err(nom::Err::Error(PError(format!(
+            "text {text} does not match"
+        )))),
     }
 }
 
 pub fn match_token(kind: TokenKind) -> impl FnMut(Input) -> IResult<&Token> {
     move |i| match i.get(0).filter(|token| token.kind == kind) {
         Some(token) => Ok((i.slice(1..), token)),
-        None => PError::from("token kind does not match"),
+        None => Err(nom::Err::Error(PError(format!(
+            "token kind {kind} does not match"
+        )))),
     }
 }
 

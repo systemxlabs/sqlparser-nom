@@ -1,10 +1,12 @@
+use nom::combinator::opt;
 use nom::{branch::alt, sequence::tuple};
 use nom::{Parser, Slice};
 
-use crate::ast::expr::{BinaryOp, Expr, Literal, UnaryOp};
+use crate::ast::expr::{BinaryOp, Expr, FunctionArg, Literal, UnaryOp};
 use crate::parser::error::PError;
 use crate::parser::token::{Token, TokenKind};
 
+use super::common::comma_separated_list1;
 use super::{
     common::{ident, match_token},
     IResult, Input,
@@ -76,8 +78,8 @@ fn prefix(i: Input) -> Result<(Input, Expr), String> {
             )),
         )),
         TokenKind::Ident => {
-            let Ok((i, expr)) = column_ref_expr(i) else {
-                return Err("()".to_string());
+            let Ok((i, expr)) = alt((function_expr, column_ref_expr))(i) else {
+                return Err("can not find prefix expr".to_string());
             };
             Ok((i, expr))
         }
@@ -213,6 +215,33 @@ fn column_ref_expr(i: Input) -> IResult<Expr> {
     ))(i)
 }
 
+fn function_expr(i: Input) -> IResult<Expr> {
+    tuple((
+        ident,
+        match_token(TokenKind::LParen),
+        opt(match_token(TokenKind::DISTINCT)),
+        comma_separated_list1(function_arg),
+        match_token(TokenKind::RParen),
+    ))(i)
+    .map(|(i, (name, _, distinct, args, _))| {
+        (
+            i,
+            Expr::Function {
+                name,
+                distinct: distinct.is_some(),
+                args,
+            },
+        )
+    })
+}
+
+fn function_arg(i: Input) -> IResult<FunctionArg> {
+    alt((
+        match_token(TokenKind::Multiply).map(|_| FunctionArg::Wildcard),
+        expr.map(|expr| FunctionArg::Expr(expr)),
+    ))(i)
+}
+
 mod tests {
 
     #[test]
@@ -260,5 +289,20 @@ mod tests {
             }
             _ => panic!("should be column ref"),
         }
+    }
+
+    #[test]
+    pub fn test_function() {
+        use super::*;
+        use crate::parser::expr::function_expr;
+        use crate::parser::tokenize_sql;
+
+        let tokens = tokenize_sql("count(distinct a)");
+        let result = function_expr(&tokens);
+        println!("{:?}", result);
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert!(result.0.is_empty());
+        assert!(matches!(result.1, Expr::Function { .. }));
     }
 }

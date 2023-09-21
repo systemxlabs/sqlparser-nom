@@ -17,6 +17,11 @@ pub enum Expr {
         op: BinaryOp,
         right: Box<Expr>,
     },
+    Function {
+        name: Ident,
+        distinct: bool,
+        args: Vec<FunctionArg>,
+    },
 }
 impl std::fmt::Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -37,6 +42,20 @@ impl std::fmt::Display for Expr {
             Self::Literal(literal) => write!(f, "{}", literal),
             Self::UnaryOp { op, expr } => write!(f, "{}{}", op, expr),
             Self::BinaryOp { left, op, right } => write!(f, "({} {} {})", left, op, right),
+            Self::Function {
+                name,
+                distinct,
+                args,
+            } => write!(
+                f,
+                "{}({}{})",
+                name,
+                if *distinct { "DISTINCT " } else { "" },
+                args.iter()
+                    .map(|a| a.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
         }
     }
 }
@@ -112,6 +131,20 @@ impl std::fmt::Display for UnaryOp {
         match self {
             Self::Plus => write!(f, "+"),
             Self::Minus => write!(f, "-"),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum FunctionArg {
+    Wildcard,
+    Expr(Expr),
+}
+impl std::fmt::Display for FunctionArg {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Wildcard => write!(f, "*"),
+            Self::Expr(expr) => write!(f, "{}", expr),
         }
     }
 }

@@ -70,9 +70,11 @@ mod tests {
         use super::select_stmt;
         use crate::parser::tokenize_sql;
 
-        let tokens =
-            tokenize_sql("select a, t1.b from t1 group by a, c order by a, b desc limit 1, 2");
+        let tokens = tokenize_sql(
+            "select a, t1.b, count(d) from t1 group by a, c order by a, b desc limit 1, 2",
+        );
         let result = select_stmt(&tokens);
+        println!("result: {:?}", result);
         assert!(result.is_ok());
         let result = result.unwrap();
         assert_eq!(result.0, vec![]);
