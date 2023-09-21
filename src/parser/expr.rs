@@ -27,8 +27,11 @@ fn pratt_parse(i: Input, lbp: u32) -> Result<(Input, Expr), String> {
         let Some(token) = i.get(0) else {
             break;
         };
+        let Ok(bp) = precedence(token, AffixKind::Infix) else {
+            // end of expr
+            break;
+        };
         // compare to infix precedence
-        let bp = precedence(token, AffixKind::Infix);
         if lbp >= bp {
             // if prefix precedence is greater than infix, then break
             break;
@@ -52,11 +55,9 @@ fn prefix(i: Input) -> Result<(Input, Expr), String> {
     let Some(token) = i.get(0) else {
         return Err("No token found".to_string());
     };
-    let i = i.slice(1..);
-
     match token.kind {
         TokenKind::LParen => {
-            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Prefix))?;
+            let (i, right) = pratt_parse(i.slice(1..), precedence(token, AffixKind::Prefix)?)?;
             // next token should be RParen
             let Some(next_token) = i.get(0) else {
                 return Err("Expect ')' token".to_string());
@@ -69,13 +70,19 @@ fn prefix(i: Input) -> Result<(Input, Expr), String> {
             }
         }
         TokenKind::LiteralInteger => Ok((
-            i,
+            i.slice(1..),
             Expr::Literal(Literal::UnsignedInteger(
                 token.text().parse::<usize>().unwrap(),
             )),
         )),
+        TokenKind::Ident => {
+            let Ok((i, expr)) = column_ref_expr(i) else {
+                return Err("()".to_string());
+            };
+            Ok((i, expr))
+        }
         TokenKind::Plus => {
-            let (i, expr) = pratt_parse(i, precedence(token, AffixKind::Prefix))?;
+            let (i, expr) = pratt_parse(i.slice(1..), precedence(token, AffixKind::Prefix)?)?;
             Ok((
                 i,
                 Expr::UnaryOp {
@@ -85,7 +92,7 @@ fn prefix(i: Input) -> Result<(Input, Expr), String> {
             ))
         }
         TokenKind::Minus => {
-            let (i, expr) = pratt_parse(i, precedence(token, AffixKind::Prefix))?;
+            let (i, expr) = pratt_parse(i.slice(1..), precedence(token, AffixKind::Prefix)?)?;
             Ok((
                 i,
                 Expr::UnaryOp {
@@ -106,7 +113,7 @@ fn infix(i: Input, left: Expr) -> Result<(Input, Expr), String> {
     let i = i.slice(1..);
     match token.kind {
         TokenKind::Plus => {
-            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix))?;
+            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
             Ok((
                 i,
                 Expr::BinaryOp {
@@ -117,7 +124,7 @@ fn infix(i: Input, left: Expr) -> Result<(Input, Expr), String> {
             ))
         }
         TokenKind::Minus => {
-            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix))?;
+            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
             Ok((
                 i,
                 Expr::BinaryOp {
@@ -128,7 +135,7 @@ fn infix(i: Input, left: Expr) -> Result<(Input, Expr), String> {
             ))
         }
         TokenKind::Multiply => {
-            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix))?;
+            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
             Ok((
                 i,
                 Expr::BinaryOp {
@@ -139,7 +146,7 @@ fn infix(i: Input, left: Expr) -> Result<(Input, Expr), String> {
             ))
         }
         TokenKind::Divide => {
-            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix))?;
+            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
             Ok((
                 i,
                 Expr::BinaryOp {
@@ -160,25 +167,24 @@ enum AffixKind {
     Infix,
 }
 
-fn precedence(token: &Token, affix: AffixKind) -> u32 {
+fn precedence(token: &Token, affix: AffixKind) -> Result<u32, String> {
     match affix {
         // prefix precedence should be grater than infix
         AffixKind::Prefix => match token.kind {
-            TokenKind::LParen => 0,
-            TokenKind::Plus | TokenKind::Minus => 300,
-            TokenKind::LiteralInteger => 200,
-            _ => unreachable!(),
+            TokenKind::LParen => Ok(0),
+            TokenKind::Plus | TokenKind::Minus => Ok(300),
+            _ => Err("token can't be treated as prefix".to_string()),
         },
         AffixKind::Infix => match token.kind {
-            TokenKind::RParen => 0,
-            TokenKind::Plus | TokenKind::Minus => 10,
-            TokenKind::Multiply | TokenKind::Divide => 20,
-            _ => unreachable!(),
+            TokenKind::RParen => Ok(0),
+            TokenKind::Plus | TokenKind::Minus => Ok(10),
+            TokenKind::Multiply | TokenKind::Divide => Ok(20),
+            _ => Err("token can't be treated as infix".to_string()),
         },
     }
 }
 
-pub fn column_ref(i: Input) -> IResult<Expr> {
+fn column_ref_expr(i: Input) -> IResult<Expr> {
     alt((
         tuple((
             ident,
@@ -214,7 +220,7 @@ mod tests {
         use super::*;
         use crate::parser::tokenize_sql;
 
-        let tokens = tokenize_sql("1*(2-3)+4/2");
+        let tokens = tokenize_sql("1*(2-3)+4/2 + t1.a");
         let result = expr(&tokens).unwrap();
         println!("expr: {}", result.1);
     }
@@ -223,11 +229,11 @@ mod tests {
     pub fn test_column_ref() {
         use super::*;
         use crate::ast::Ident;
-        use crate::parser::expr::column_ref;
+        use crate::parser::expr::column_ref_expr;
         use crate::parser::tokenize_sql;
 
         let tokens = tokenize_sql("t1.b");
-        let column_ref = column_ref(&tokens);
+        let column_ref = column_ref_expr(&tokens);
         println!("{:?}", column_ref);
         assert!(column_ref.is_ok());
         let column_ref = column_ref.unwrap();

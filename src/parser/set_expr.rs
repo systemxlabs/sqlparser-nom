@@ -5,7 +5,7 @@ use crate::ast::set_expr::{SelectItem, SetExpr};
 use crate::parser::token::*;
 
 use super::common::{comma_separated_list1, ident, match_text};
-use super::expr::column_ref;
+use super::expr::expr;
 use super::{common::match_token, IResult, Input};
 
 pub fn select_set_expr(i: Input) -> IResult<SetExpr> {
@@ -16,7 +16,7 @@ pub fn select_set_expr(i: Input) -> IResult<SetExpr> {
         ident,
     ))(i)
     .map(|(i, (_, projection, _, from))| {
-        Ok((
+        (
             i,
             SetExpr::Select {
                 projection,
@@ -24,16 +24,16 @@ pub fn select_set_expr(i: Input) -> IResult<SetExpr> {
                 where_clause: None,
                 group_by: vec![],
             },
-        ))
-    })?
+        )
+    })
 }
 
 pub fn select_item(i: Input) -> IResult<SelectItem> {
     alt((
         match_text("*").map(|_| SelectItem::Wildcard),
-        tuple((column_ref, match_token(AS), ident))
+        tuple((expr, match_token(AS), ident))
             .map(|(expr, _, alias)| SelectItem::ExprWithAlias { expr, alias }),
-        column_ref.map(|expr| SelectItem::UnnamedExpr(expr)),
+        expr.map(|expr| SelectItem::UnnamedExpr(expr)),
     ))(i)
 }
 
