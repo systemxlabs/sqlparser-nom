@@ -18,6 +18,12 @@ impl<'a> Token<'a> {
     }
 }
 
+impl std::fmt::Display for Token<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Token({}, {})", self.kind, self.text())
+    }
+}
+
 pub struct Tokenizer<'a> {
     source: &'a str,
     lexer: Lexer<'a, TokenKind>,
@@ -260,6 +266,71 @@ impl TokenKind {
                 | Comma
                 | Dot
         )
+    }
+}
+
+impl std::fmt::Display for TokenKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Whitespace => write!(f, "Whitespace"),
+            Comment => write!(f, "Whitespace"),
+            CommentBlock => write!(f, "Whitespace"),
+            Ident => write!(f, "Whitespace"),
+            QuotedString => write!(f, "Whitespace"),
+            LiteralInteger => write!(f, "Whitespace"),
+            LiteralFloat => write!(f, "Whitespace"),
+            Eq => write!(f, "Whitespace"),
+            NotEq => write!(f, "Whitespace"),
+            Lt => write!(f, "Whitespace"),
+            Gt => write!(f, "Whitespace"),
+            LtEq => write!(f, "Whitespace"),
+            GtEq => write!(f, "Whitespace"),
+            Plus => write!(f, "Whitespace"),
+            Minus => write!(f, "Whitespace"),
+            Multiply => write!(f, "Whitespace"),
+            Divide => write!(f, "Whitespace"),
+            IntDiv => write!(f, "Whitespace"),
+            Modulo => write!(f, "Whitespace"),
+            StringConcat => write!(f, "Whitespace"),
+            LParen => write!(f, "Whitespace"),
+            RParen => write!(f, "Whitespace"),
+            Comma => write!(f, "Whitespace"),
+            Dot => write!(f, "Whitespace"),
+            AND => write!(f, "Whitespace"),
+            AS => write!(f, "Whitespace"),
+            ASC => write!(f, "Whitespace"),
+            BY => write!(f, "Whitespace"),
+            DESC => write!(f, "Whitespace"),
+            DISTINCT => write!(f, "Whitespace"),
+            EXISTS => write!(f, "Whitespace"),
+            FROM => write!(f, "Whitespace"),
+            FULL => write!(f, "Whitespace"),
+            GROUP => write!(f, "Whitespace"),
+            HAVING => write!(f, "Whitespace"),
+            IN => write!(f, "Whitespace"),
+            INNER => write!(f, "Whitespace"),
+            INTO => write!(f, "Whitespace"),
+            IS => write!(f, "Whitespace"),
+            JOIN => write!(f, "Whitespace"),
+            LEFT => write!(f, "Whitespace"),
+            LIKE => write!(f, "Whitespace"),
+            LIMIT => write!(f, "Whitespace"),
+            NOT => write!(f, "Whitespace"),
+            NULL => write!(f, "Whitespace"),
+            OFFSET => write!(f, "Whitespace"),
+            ON => write!(f, "Whitespace"),
+            OR => write!(f, "Whitespace"),
+            ORDER => write!(f, "Whitespace"),
+            OUTER => write!(f, "Whitespace"),
+            OVER => write!(f, "Whitespace"),
+            PARTITION => write!(f, "Whitespace"),
+            SELECT => write!(f, "Whitespace"),
+            WHERE => write!(f, "Whitespace"),
+            WINDOW => write!(f, "Whitespace"),
+            WITH => write!(f, "Whitespace"),
+            FIRST => write!(f, "Whitespace"),
+            LAST => write!(f, "Whitespace"),
+        }
     }
 }
 

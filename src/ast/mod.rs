@@ -3,7 +3,7 @@ pub mod set_expr;
 pub mod statement;
 
 /// An identifier
-#[derive(derive_new::new, Debug, PartialEq, Eq)]
+#[derive(derive_new::new, Debug, Clone, PartialEq, Eq)]
 pub struct Ident {
     pub value: String,
 }

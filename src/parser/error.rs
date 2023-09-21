@@ -1,7 +1,7 @@
 use super::{IResult, Input};
 
 #[derive(Debug)]
-pub struct PError(String);
+pub struct PError(pub String);
 impl PError {
     pub fn from<O>(message: &str) -> IResult<O> {
         Err(nom::Err::Error(PError(message.to_string())))

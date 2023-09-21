@@ -1,6 +1,6 @@
 use super::Ident;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     ColumnRef {
         database: Option<Ident>,
@@ -47,7 +47,7 @@ impl std::fmt::Display for Expr {
 }
 
 /// Binary operators
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum BinaryOp {
     // + - * / %
     Add,
@@ -89,7 +89,7 @@ impl std::fmt::Display for BinaryOp {
 }
 
 /// Literal values
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Literal {
     String(String),
     UnsignedInteger(usize),
@@ -106,7 +106,7 @@ impl std::fmt::Display for Literal {
 }
 
 /// Unary operators
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum UnaryOp {
     Plus,
     Minus,
