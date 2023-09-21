@@ -2,7 +2,7 @@
 A experimental SQL query parser using nom.
 
 - [ ] Query
-  - [ ] Select
+  - [x] Select
   - [ ] From
   - [x] Where
   - [x] Order by
@@ -11,6 +11,7 @@ A experimental SQL query parser using nom.
   - [ ] Into
   - [x] Group by
   - [ ] Having
+  - [x] Aggregate
   - [ ] Window
 - [x] Pratt Parsing
 - [ ] Friendly error info

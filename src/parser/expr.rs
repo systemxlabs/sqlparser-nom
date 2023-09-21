@@ -158,6 +158,72 @@ fn infix(i: Input, left: Expr) -> Result<(Input, Expr), String> {
                 },
             ))
         }
+        TokenKind::Gt => {
+            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            Ok((
+                i,
+                Expr::BinaryOp {
+                    left: Box::new(left),
+                    op: BinaryOp::Gt,
+                    right: Box::new(right),
+                },
+            ))
+        }
+        TokenKind::Lt => {
+            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            Ok((
+                i,
+                Expr::BinaryOp {
+                    left: Box::new(left),
+                    op: BinaryOp::Lt,
+                    right: Box::new(right),
+                },
+            ))
+        }
+        TokenKind::GtEq => {
+            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            Ok((
+                i,
+                Expr::BinaryOp {
+                    left: Box::new(left),
+                    op: BinaryOp::GtEq,
+                    right: Box::new(right),
+                },
+            ))
+        }
+        TokenKind::LtEq => {
+            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            Ok((
+                i,
+                Expr::BinaryOp {
+                    left: Box::new(left),
+                    op: BinaryOp::LtEq,
+                    right: Box::new(right),
+                },
+            ))
+        }
+        TokenKind::Eq => {
+            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            Ok((
+                i,
+                Expr::BinaryOp {
+                    left: Box::new(left),
+                    op: BinaryOp::Eq,
+                    right: Box::new(right),
+                },
+            ))
+        }
+        TokenKind::NotEq => {
+            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            Ok((
+                i,
+                Expr::BinaryOp {
+                    left: Box::new(left),
+                    op: BinaryOp::NotEq,
+                    right: Box::new(right),
+                },
+            ))
+        }
         _ => {
             return Err("The token can't be treated as infix".to_string());
         }
@@ -179,8 +245,14 @@ fn precedence(token: &Token, affix: AffixKind) -> Result<u32, String> {
         },
         AffixKind::Infix => match token.kind {
             TokenKind::RParen => Ok(0),
-            TokenKind::Plus | TokenKind::Minus => Ok(10),
-            TokenKind::Multiply | TokenKind::Divide => Ok(20),
+            TokenKind::Gt
+            | TokenKind::Lt
+            | TokenKind::GtEq
+            | TokenKind::LtEq
+            | TokenKind::Eq
+            | TokenKind::NotEq => Ok(10),
+            TokenKind::Plus | TokenKind::Minus => Ok(11),
+            TokenKind::Multiply | TokenKind::Divide => Ok(12),
             _ => Err("token can't be treated as infix".to_string()),
         },
     }
@@ -250,6 +322,10 @@ mod tests {
         use crate::parser::tokenize_sql;
 
         let tokens = tokenize_sql("1*(2-3)+4/2 + t1.a");
+        let result = expr(&tokens).unwrap();
+        println!("expr: {}", result.1);
+
+        let tokens = tokenize_sql("t1.a !=` 1");
         let result = expr(&tokens).unwrap();
         println!("expr: {}", result.1);
     }
