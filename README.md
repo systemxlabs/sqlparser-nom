@@ -1,17 +1,19 @@
 # sqlparser-nom 
 A experimental SQL query parser using nom.
 
-Query
-- [x] Select
-- [ ] From
-- [x] Where
-- [x] Order by
-- [x] Limit
-- [ ] CTE
-- [ ] Into
-- [x] Group by
-- [ ] Having
-- [ ] Window
+- [ ] Query
+  - [ ] Select
+  - [ ] From
+  - [ ] Where
+  - [ ] Order by
+  - [ ] Limit
+  - [ ] CTE
+  - [ ] Into
+  - [ ] Group by
+  - [ ] Having
+  - [ ] Window
+- [x] Pratt Parsing
+- [ ] Friendly error info
 
 ```sql
 select a, t.b, c 
@@ -23,136 +25,6 @@ limit 1, 2
 ```
 output ast:
 ```
-Select(
-    SelectStatement {
-        body: Select {
-            projection: [
-                UnnamedExpr(
-                    Identifier(
-                        Ident {
-                            value: "a",
-                        },
-                    ),
-                ),
-                UnnamedExpr(
-                    CompoundIdentifier(
-                        [
-                            Ident {
-                                value: "t",
-                            },
-                            Ident {
-                                value: "b",
-                            },
-                        ],
-                    ),
-                ),
-                UnnamedExpr(
-                    Identifier(
-                        Ident {
-                            value: "c",
-                        },
-                    ),
-                ),
-            ],
-            from: Ident {
-                value: "t",
-            },
-            where_clause: Some(
-                BinaryOp {
-                    left: BinaryOp {
-                        left: Identifier(
-                            Ident {
-                                value: "a",
-                            },
-                        ),
-                        op: Gt,
-                        right: BinaryOp {
-                            left: BinaryOp {
-                                left: Literal(
-                                    UnsignedInteger(
-                                        1,
-                                    ),
-                                ),
-                                op: Add,
-                                right: Literal(
-                                    UnsignedInteger(
-                                        2,
-                                    ),
-                                ),
-                            },
-                            op: Mul,
-                            right: Literal(
-                                UnsignedInteger(
-                                    3,
-                                ),
-                            ),
-                        },
-                    },
-                    op: And,
-                    right: BinaryOp {
-                        left: Identifier(
-                            Ident {
-                                value: "b",
-                            },
-                        ),
-                        op: Lt,
-                        right: Identifier(
-                            Ident {
-                                value: "c",
-                            },
-                        ),
-                    },
-                },
-            ),
-            group_by: [
-                Identifier(
-                    Ident {
-                        value: "a",
-                    },
-                ),
-                Identifier(
-                    Ident {
-                        value: "c",
-                    },
-                ),
-            ],
-        },
-        order_by: [
-            OrderByExpr {
-                expr: Identifier(
-                    Ident {
-                        value: "a",
-                    },
-                ),
-                asc: None,
-            },
-            OrderByExpr {
-                expr: Identifier(
-                    Ident {
-                        value: "b",
-                    },
-                ),
-                asc: Some(
-                    false,
-                ),
-            },
-        ],
-        limit: Some(
-            Literal(
-                UnsignedInteger(
-                    1,
-                ),
-            ),
-        ),
-        offset: Some(
-            Literal(
-                UnsignedInteger(
-                    2,
-                ),
-            ),
-        ),
-    },
-)
 ```
 
 ## References
@@ -161,3 +33,4 @@ Select(
 - [PostgreSQL Doc](https://www.postgresql.org/docs/16/sql.html)
 - [BNF Grammars for SQL-92, SQL-99 and SQL-2003](https://ronsavage.github.io/SQL/)
 - [Queries - Microsoft SQL Doc](https://learn.microsoft.com/en-us/sql/t-sql/queries/queries)
+- [Simple but Powerful Pratt Parsing](https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html)
