@@ -3,7 +3,7 @@ use nom::Parser;
 use nom::{branch::alt, sequence::tuple};
 
 use crate::ast::expr::Expr;
-use crate::ast::set_expr::{SelectItem, SetExpr};
+use crate::ast::set_expr::{SelectItem, SetExpr, TableName, TableRef};
 use crate::parser::token::*;
 
 use super::common::{comma_separated_list1, ident, match_text};
@@ -15,7 +15,7 @@ pub fn select_set_expr(i: Input) -> IResult<SetExpr> {
         match_token(SELECT),
         comma_separated_list1(select_item),
         match_token(FROM),
-        ident,
+        opt(table_ref),
         opt(where_clause),
         opt(group_by_clause),
         opt(having_clause),
@@ -60,6 +60,28 @@ fn group_by_clause(i: Input) -> IResult<Vec<Expr>> {
 
 fn having_clause(i: Input) -> IResult<Expr> {
     tuple((match_token(HAVING), expr))(i).map(|(i, (_, having))| (i, having))
+}
+
+fn table_ref(i: Input) -> IResult<TableRef> {
+    alt((tuple((table_name, opt(table_alias)))
+        .map(|(name, alias)| TableRef::BaseTable { name, alias }),))(i)
+}
+
+fn table_name(i: Input) -> IResult<TableName> {
+    alt((
+        tuple((ident, match_token(Dot), ident)).map(|(database, _, table)| TableName {
+            database: Some(database),
+            table,
+        }),
+        ident.map(|table| TableName {
+            database: None,
+            table,
+        }),
+    ))(i)
+}
+
+fn table_alias(i: Input) -> IResult<crate::ast::Ident> {
+    tuple((match_token(AS), ident))(i).map(|(i, (_, alias))| (i, alias))
 }
 
 #[cfg(test)]

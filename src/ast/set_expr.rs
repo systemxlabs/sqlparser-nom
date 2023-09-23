@@ -4,7 +4,7 @@ use super::{expr::Expr, Ident};
 pub enum SetExpr {
     Select {
         projection: Vec<SelectItem>,
-        from: Ident,
+        from: Option<TableRef>,
         selection: Option<Expr>,
         group_by: Vec<Expr>,
         having: Option<Expr>,
@@ -22,14 +22,16 @@ impl std::fmt::Display for SetExpr {
             } => {
                 write!(
                     f,
-                    "SELECT {} FROM {}",
+                    "SELECT {}",
                     projection
                         .iter()
                         .map(|p| p.to_string())
                         .collect::<Vec<_>>()
                         .join(", "),
-                    from
                 )?;
+                if let Some(from) = from {
+                    write!(f, " FROM {}", from)?;
+                }
                 if let Some(selection) = selection {
                     write!(f, " WHERE {}", selection)?;
                 }
@@ -66,5 +68,41 @@ impl std::fmt::Display for SelectItem {
             Self::ExprWithAlias { expr, alias } => write!(f, "{} AS {}", expr, alias),
             Self::Wildcard => write!(f, "*"),
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum TableRef {
+    BaseTable {
+        name: TableName,
+        alias: Option<Ident>,
+    },
+}
+impl std::fmt::Display for TableRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TableRef::BaseTable { name, alias } => {
+                write!(f, "{name}")?;
+                if let Some(alias) = alias {
+                    write!(f, " AS {alias}")?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct TableName {
+    pub database: Option<Ident>,
+    pub table: Ident,
+}
+impl std::fmt::Display for TableName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(database) = self.database.as_ref() {
+            write!(f, "{database}.")?;
+        }
+        write!(f, "{}", self.table)?;
+        Ok(())
     }
 }
