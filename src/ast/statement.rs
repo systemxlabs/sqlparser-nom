@@ -1,6 +1,6 @@
 use super::{expr::Expr, set_expr::SetExpr};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SelectStatement {
     pub body: SetExpr,
     pub order_by: Vec<OrderByExpr>,
@@ -31,7 +31,7 @@ impl std::fmt::Display for SelectStatement {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct OrderByExpr {
     pub expr: Expr,
     pub asc: Option<bool>,

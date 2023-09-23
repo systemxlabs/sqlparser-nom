@@ -1,6 +1,7 @@
 use super::{expr::Expr, Ident};
+use crate::ast::statement::SelectStatement;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum SetExpr {
     Select {
         projection: Vec<SelectItem>,
@@ -55,7 +56,7 @@ impl std::fmt::Display for SetExpr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum SelectItem {
     UnnamedExpr(Expr),
     ExprWithAlias { expr: Expr, alias: Ident },
@@ -77,12 +78,23 @@ pub enum TableRef {
         name: TableName,
         alias: Option<Ident>,
     },
+    Subquery {
+        subquery: Box<SelectStatement>,
+        alias: Option<Ident>,
+    },
 }
 impl std::fmt::Display for TableRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             TableRef::BaseTable { name, alias } => {
                 write!(f, "{name}")?;
+                if let Some(alias) = alias {
+                    write!(f, " AS {alias}")?;
+                }
+                Ok(())
+            }
+            TableRef::Subquery { subquery, alias } => {
+                write!(f, "({subquery})")?;
                 if let Some(alias) = alias {
                     write!(f, " AS {alias}")?;
                 }

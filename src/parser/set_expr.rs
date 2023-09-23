@@ -4,6 +4,7 @@ use nom::{branch::alt, sequence::tuple};
 
 use crate::ast::expr::Expr;
 use crate::ast::set_expr::{SelectItem, SetExpr, TableName, TableRef};
+use crate::parser::statement::select_stmt;
 use crate::parser::token::*;
 
 use super::common::{comma_separated_list1, ident, match_text};
@@ -63,8 +64,29 @@ fn having_clause(i: Input) -> IResult<Expr> {
 }
 
 fn table_ref(i: Input) -> IResult<TableRef> {
-    alt((tuple((table_name, opt(table_alias)))
-        .map(|(name, alias)| TableRef::BaseTable { name, alias }),))(i)
+    alt((
+        subquery,
+        tuple((table_name, opt(table_alias)))
+            .map(|(name, alias)| TableRef::BaseTable { name, alias }),
+    ))(i)
+}
+
+fn subquery(i: Input) -> IResult<TableRef> {
+    tuple((
+        match_token(LParen),
+        select_stmt,
+        match_token(RParen),
+        opt(table_alias),
+    ))(i)
+    .map(|(i, (_, subquery, _, alias))| {
+        (
+            i,
+            TableRef::Subquery {
+                subquery: Box::new(subquery),
+                alias,
+            },
+        )
+    })
 }
 
 fn table_name(i: Input) -> IResult<TableName> {
