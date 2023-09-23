@@ -82,6 +82,12 @@ pub enum TableRef {
         subquery: Box<SelectStatement>,
         alias: Option<Ident>,
     },
+    Join {
+        op: JoinOp,
+        condition: JoinCondition,
+        left: Box<TableRef>,
+        right: Box<TableRef>,
+    },
 }
 impl std::fmt::Display for TableRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -97,6 +103,19 @@ impl std::fmt::Display for TableRef {
                 write!(f, "({subquery})")?;
                 if let Some(alias) = alias {
                     write!(f, " AS {alias}")?;
+                }
+                Ok(())
+            }
+            TableRef::Join {
+                op,
+                condition,
+                left,
+                right,
+            } => {
+                write!(f, "{left} {op} {right}")?;
+                match condition {
+                    JoinCondition::On(expr) => write!(f, " ON ({})", expr)?,
+                    JoinCondition::None => {}
                 }
                 Ok(())
             }
@@ -117,4 +136,30 @@ impl std::fmt::Display for TableName {
         write!(f, "{}", self.table)?;
         Ok(())
     }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum JoinOp {
+    Inner,
+    LeftOuter,
+    RightOuter,
+    FullOuter,
+    CrossJoin,
+}
+impl std::fmt::Display for JoinOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            JoinOp::Inner => write!(f, "INNER JOIN"),
+            JoinOp::LeftOuter => write!(f, "LEFT OUTER JOIN"),
+            JoinOp::RightOuter => write!(f, "RIGHT OUTER JOIN"),
+            JoinOp::FullOuter => write!(f, "FULL OUTER JOIN"),
+            JoinOp::CrossJoin => write!(f, "CROSS JOIN"),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum JoinCondition {
+    On(Box<Expr>),
+    None,
 }

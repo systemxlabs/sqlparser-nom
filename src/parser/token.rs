@@ -218,6 +218,9 @@ pub enum TokenKind {
     #[token("PARTITION", ignore(ascii_case))]
     PARTITION,
 
+    #[token("RIGHT", ignore(ascii_case))]
+    RIGHT,
+
     #[token("SELECT", ignore(ascii_case))]
     SELECT,
 
@@ -324,6 +327,7 @@ impl std::fmt::Display for TokenKind {
             OUTER => write!(f, "OUTER"),
             OVER => write!(f, "OVER"),
             PARTITION => write!(f, "PARTITION"),
+            RIGHT => write!(f, "RIGHT"),
             SELECT => write!(f, "SELECT"),
             WHERE => write!(f, "WHERE"),
             WINDOW => write!(f, "WINDOW"),
