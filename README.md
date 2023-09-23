@@ -10,12 +10,13 @@ A experimental SQL query parser using nom.
   - [ ] CTE
   - [ ] Into
   - [x] Group by
-  - [ ] Having
+  - [x] Having
   - [x] Aggregate
   - [ ] Window
 - [x] Pratt Parsing
 - [ ] Friendly error info
 
+## Example
 ```sql
 select a, t.b, c 
 from t 
@@ -182,3 +183,4 @@ SelectStatement {
 - [BNF Grammars for SQL-92, SQL-99 and SQL-2003](https://ronsavage.github.io/SQL/)
 - [Queries - Microsoft SQL Doc](https://learn.microsoft.com/en-us/sql/t-sql/queries/queries)
 - [Simple but Powerful Pratt Parsing](https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html)
+- [手写一个Parser - 代码简单而功能强大的Pratt Parsing](https://zhuanlan.zhihu.com/p/471075848)

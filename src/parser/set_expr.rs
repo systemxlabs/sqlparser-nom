@@ -18,18 +18,22 @@ pub fn select_set_expr(i: Input) -> IResult<SetExpr> {
         ident,
         opt(where_clause),
         opt(group_by_clause),
+        opt(having_clause),
     ))(i)
-    .map(|(i, (_, projection, _, from, selection, group_by))| {
-        (
-            i,
-            SetExpr::Select {
-                projection,
-                from,
-                selection,
-                group_by: group_by.unwrap_or(vec![]),
-            },
-        )
-    })
+    .map(
+        |(i, (_, projection, _, from, selection, group_by, having))| {
+            (
+                i,
+                SetExpr::Select {
+                    projection,
+                    from,
+                    selection,
+                    group_by: group_by.unwrap_or(vec![]),
+                    having,
+                },
+            )
+        },
+    )
 }
 
 fn select_item(i: Input) -> IResult<SelectItem> {
@@ -52,6 +56,10 @@ fn group_by_clause(i: Input) -> IResult<Vec<Expr>> {
         comma_separated_list1(expr),
     ))(i)
     .map(|(i, (_, _, group_by_list))| (i, group_by_list))
+}
+
+fn having_clause(i: Input) -> IResult<Expr> {
+    tuple((match_token(HAVING), expr))(i).map(|(i, (_, having))| (i, having))
 }
 
 #[cfg(test)]

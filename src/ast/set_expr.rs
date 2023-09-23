@@ -7,6 +7,7 @@ pub enum SetExpr {
         from: Ident,
         selection: Option<Expr>,
         group_by: Vec<Expr>,
+        having: Option<Expr>,
     },
 }
 impl std::fmt::Display for SetExpr {
@@ -17,6 +18,7 @@ impl std::fmt::Display for SetExpr {
                 from,
                 selection,
                 group_by,
+                having,
             } => {
                 write!(
                     f,
@@ -41,6 +43,9 @@ impl std::fmt::Display for SetExpr {
                             .collect::<Vec<_>>()
                             .join(", "),
                     )?;
+                }
+                if let Some(expr) = having {
+                    write!(f, " Having {}", expr)?;
                 }
                 Ok(())
             }
