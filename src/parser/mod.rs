@@ -3,6 +3,7 @@ pub mod error;
 pub mod expr;
 pub mod set_expr;
 pub mod statement;
+pub mod table_ref;
 pub mod token;
 
 pub type Input<'a> = &'a [token::Token<'a>];

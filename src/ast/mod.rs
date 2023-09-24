@@ -1,6 +1,7 @@
 pub mod expr;
 pub mod set_expr;
 pub mod statement;
+pub mod table_ref;
 
 /// An identifier
 #[derive(derive_new::new, Debug, Clone, PartialEq, Eq)]
