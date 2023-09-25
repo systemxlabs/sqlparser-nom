@@ -13,7 +13,10 @@ pub fn test_query() {
             r#"SELECT a, b, a + b FROM table"#,
             r#"SELECT a, b, (a + b) FROM table"#,
         ),
-        // (r#"SELECT DISTINCT person, age FROM employees"#, r#""#),
+        (
+            r#"SELECT DISTINCT person, age FROM employees"#,
+            r#"SELECT DISTINCT person, age FROM employees"#,
+        ),
         // from
         (
             r#"SELECT t.a FROM table AS t"#,

@@ -15,6 +15,7 @@ use super::{common::match_token, IResult, Input};
 pub fn select_set_expr(i: Input) -> IResult<SetExpr> {
     tuple((
         match_token(SELECT),
+        opt(match_token(DISTINCT)),
         comma_separated_list1(select_item),
         opt(tuple((match_token(FROM), table_ref))),
         opt(where_clause),
@@ -23,10 +24,11 @@ pub fn select_set_expr(i: Input) -> IResult<SetExpr> {
         opt(window_clause),
     ))(i)
     .map(
-        |(i, (_, projection, from, selection, group_by, having, named_windows))| {
+        |(i, (_, distinct, projection, from, selection, group_by, having, named_windows))| {
             (
                 i,
                 SetExpr::Select {
+                    distinct: distinct.is_some(),
                     projection,
                     from: from.map(|(_, from)| from),
                     selection,

@@ -5,6 +5,7 @@ use crate::ast::table_ref::TableRef;
 #[derive(Debug, Clone)]
 pub enum SetExpr {
     Select {
+        distinct: bool,
         projection: Vec<SelectItem>,
         from: Option<TableRef>,
         selection: Option<Expr>,
@@ -17,6 +18,7 @@ impl std::fmt::Display for SetExpr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Select {
+                distinct,
                 projection,
                 from,
                 selection,
@@ -26,7 +28,8 @@ impl std::fmt::Display for SetExpr {
             } => {
                 write!(
                     f,
-                    "SELECT {}",
+                    "SELECT {}{}",
+                    if *distinct { "DISTINCT " } else { "" },
                     projection
                         .iter()
                         .map(|p| p.to_string())

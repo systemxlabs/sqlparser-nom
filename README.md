@@ -1,13 +1,13 @@
 # sqlparser-nom 
 A experimental SQL query parser using nom.
 
-- [ ] Query
+- [x] Query
   - [x] Select
   - [x] From
   - [x] Where
   - [x] Order by
   - [x] Limit
-  - [ ] CTE
+  - [x] CTE
   - [x] Group by
   - [x] Having
   - [x] Aggregate
