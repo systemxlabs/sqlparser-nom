@@ -1,5 +1,5 @@
 use super::Ident;
-use crate::ast::statement::OrderByExpr;
+use crate::ast::statement::{OrderByExpr, SelectStatement};
 
 #[derive(Debug, Clone)]
 pub enum Expr {
@@ -23,6 +23,10 @@ pub enum Expr {
         distinct: bool,
         args: Vec<FunctionArg>,
         over: Option<Window>,
+    },
+    Exists {
+        not: bool,
+        subquery: Box<SelectStatement>,
     },
 }
 impl std::fmt::Display for Expr {
@@ -63,6 +67,15 @@ impl std::fmt::Display for Expr {
                 if let Some(window) = over {
                     write!(f, " OVER {window}")?;
                 }
+                Ok(())
+            }
+            Self::Exists { not, subquery } => {
+                if *not {
+                    write!(f, "NOT EXISTS")?;
+                } else {
+                    write!(f, "EXISTS")?;
+                }
+                write!(f, " ({})", subquery)?;
                 Ok(())
             }
         }

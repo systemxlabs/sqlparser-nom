@@ -5,8 +5,10 @@ use nom::{Parser, Slice};
 use crate::ast::expr::{BinaryOp, Expr, FunctionArg, Literal, UnaryOp, Window, WindowSpec};
 use crate::parser::common::{comma_separated_list0, AffixKind, MIN_PRECEDENCE};
 use crate::parser::error::PError;
-use crate::parser::statement::order_by_expr;
-use crate::parser::token::{LParen, RParen, Token, TokenKind, BY, ORDER, OVER, PARTITION};
+use crate::parser::statement::{order_by_expr, select_stmt};
+use crate::parser::token::{
+    LParen, RParen, Token, TokenKind, BY, EXISTS, NOT, ORDER, OVER, PARTITION,
+};
 
 use super::common::comma_separated_list1;
 use super::{
@@ -79,6 +81,18 @@ fn prefix(i: Input) -> Result<(Input, Expr), String> {
         )),
         TokenKind::Ident => {
             let Ok((i, expr)) = alt((function_expr, column_ref_expr))(i) else {
+                return Err("can not find prefix expr".to_string());
+            };
+            Ok((i, expr))
+        }
+        TokenKind::NOT => {
+            let Ok((i, expr)) = exists_expr(i) else {
+                return Err("can not find prefix expr".to_string());
+            };
+            Ok((i, expr))
+        }
+        TokenKind::EXISTS => {
+            let Ok((i, expr)) =  exists_expr(i) else {
                 return Err("can not find prefix expr".to_string());
             };
             Ok((i, expr))
@@ -323,6 +337,25 @@ fn function_expr(i: Input) -> IResult<Expr> {
                 distinct: distinct.is_some(),
                 args,
                 over,
+            },
+        )
+    })
+}
+
+fn exists_expr(i: Input) -> IResult<Expr> {
+    tuple((
+        opt(match_token(NOT)),
+        match_token(EXISTS),
+        match_token(LParen),
+        select_stmt,
+        match_token(RParen),
+    ))(i)
+    .map(|(i, (not, _, _, subquery, _))| {
+        (
+            i,
+            Expr::Exists {
+                not: not.is_some(),
+                subquery: Box::new(subquery),
             },
         )
     })
