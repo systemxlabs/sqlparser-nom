@@ -3,6 +3,7 @@ use nom::{branch::alt, sequence::tuple};
 use nom::{Parser, Slice};
 
 use crate::ast::expr::{BinaryOp, Expr, FunctionArg, Literal, UnaryOp};
+use crate::parser::common::{AffixKind, MIN_PRECEDENCE};
 use crate::parser::error::PError;
 use crate::parser::token::{Token, TokenKind};
 
@@ -11,8 +12,6 @@ use super::{
     common::{ident, match_token},
     IResult, Input,
 };
-
-const MIN_PRECEDENCE: u32 = 0;
 
 pub fn expr(i: Input) -> IResult<Expr> {
     match pratt_parse(i, MIN_PRECEDENCE) {
@@ -250,11 +249,6 @@ fn infix(i: Input, left: Expr) -> Result<(Input, Expr), String> {
             return Err("The token can't be treated as infix".to_string());
         }
     }
-}
-
-enum AffixKind {
-    Prefix,
-    Infix,
 }
 
 fn precedence(token: &Token, affix: AffixKind) -> Result<u32, String> {

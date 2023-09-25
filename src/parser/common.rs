@@ -9,6 +9,13 @@ use super::{
     IResult, Input,
 };
 
+pub const MIN_PRECEDENCE: u32 = 0;
+
+pub enum AffixKind {
+    Prefix,
+    Infix,
+}
+
 pub fn match_text(text: &'static str) -> impl FnMut(Input) -> IResult<&Token> {
     move |i| match i.get(0).filter(|token| token.text() == text) {
         Some(token) => Ok((i.slice(1..), token)),

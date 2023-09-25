@@ -1,20 +1,89 @@
 use nom::branch::alt;
 use nom::combinator::opt;
 use nom::sequence::tuple;
-use nom::Parser;
+use nom::{Parser, Slice};
 
 use super::token::*;
 use crate::ast::table_ref::{JoinCondition, JoinOp, TableName, TableRef};
-use crate::parser::common::{ident, match_token};
+use crate::parser::common::{ident, match_token, AffixKind, MIN_PRECEDENCE};
+use crate::parser::error::PError;
 use crate::parser::expr::expr;
 use crate::parser::statement::select_stmt;
+use crate::parser::token::{Token, TokenKind};
 use crate::parser::{IResult, Input};
 
 pub fn table_ref(i: Input) -> IResult<TableRef> {
-    alt((
-        // join,
-        subquery, base_table,
-    ))(i)
+    match pratt_parse(i, MIN_PRECEDENCE) {
+        Ok(r) => Ok(r),
+        Err(e) => Err(nom::Err::Error(PError(e))),
+    }
+}
+
+fn pratt_parse(i: Input, lbp: u32) -> Result<(Input, TableRef), String> {
+    // find a prefix table_ref
+    let (mut i, mut left) = prefix(i)?;
+    loop {
+        let Some(op) = peek_operator(i) else {
+            break;
+        };
+        let Ok(bp) = precedence(op, AffixKind::Infix) else {
+            // end of table_ref
+            break;
+        };
+        // compare to infix precedence
+        if lbp >= bp {
+            // if prefix precedence is greater than infix, then break
+            break;
+        }
+        // find infix table_ref with prefix table_ref
+        match infix(i, left.clone()) {
+            Ok(r) => {
+                i = r.0;
+                left = r.1
+            }
+            Err(e) => {
+                return Err(e);
+            }
+        }
+    }
+    Ok((i, left))
+}
+
+// find prefix table_ref
+fn prefix(i: Input) -> Result<(Input, TableRef), String> {
+    // TODO lparen
+    alt((subquery, base_table))(i).or_else(|e| Err("Can't find prefix expr".to_string()))
+}
+
+// find infix table_ref
+fn infix(i: Input, left: TableRef) -> Result<(Input, TableRef), String> {
+    // find infix operator to get its precedence
+    let Some(op) = peek_operator(i) else {
+        return Err("No infix operator found".to_string());
+    };
+    let i = i.slice(1..);
+    todo!()
+}
+
+enum PrattOp {
+    JoinOp,
+    LParen,
+    RParen,
+}
+
+fn precedence(op: PrattOp, affix: AffixKind) -> Result<u32, String> {
+    match affix {
+        // prefix precedence should be grater than infix
+        AffixKind::Prefix => match op {
+            PrattOp::LParen => Ok(0),
+            _ => Err("pratt operator can't be treated as prefix".to_string()),
+        },
+        AffixKind::Infix => match op {
+            PrattOp::RParen => Ok(0),
+            PrattOp::JoinOp => Ok(1),
+            _ => Err("pratt operator can't be treated as infix".to_string()),
+        },
+    }
 }
 
 fn base_table(i: Input) -> IResult<TableRef> {
@@ -58,6 +127,22 @@ fn join(i: Input) -> IResult<TableRef> {
 
 fn join_condition(i: Input) -> IResult<JoinCondition> {
     alt((tuple((match_token(ON), expr)).map(|(_, expr)| JoinCondition::On(Box::new(expr))),))(i)
+}
+
+fn peek_operator(i: Input) -> Option<PrattOp> {
+    if let Some(token) = i.get(0) {
+        if matches!(token.kind, LParen) {
+            return Some(PrattOp::LParen);
+        }
+        if matches!(token.kind, RParen) {
+            return Some(PrattOp::RParen);
+        }
+    }
+    let res = join_operator(i);
+    return match res {
+        Ok((_, _)) => Some(PrattOp::JoinOp),
+        Err(_) => None,
+    };
 }
 
 fn join_operator(i: Input) -> IResult<JoinOp> {
