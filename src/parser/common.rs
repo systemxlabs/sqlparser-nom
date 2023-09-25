@@ -35,7 +35,10 @@ pub fn match_token(kind: TokenKind) -> impl FnMut(Input) -> IResult<&Token> {
 }
 
 pub fn ident(i: Input) -> IResult<Ident> {
-    match i.get(0).filter(|token| !token.kind.is_keyword()) {
+    match i
+        .get(0)
+        .filter(|token| (token.kind == TokenKind::Ident) && (!token.kind.is_keyword()))
+    {
         Some(token) => Ok((
             i.slice(1..),
             Ident {
@@ -56,4 +59,16 @@ pub fn comma_separated_list1<'a, T>(
     item: impl FnMut(Input<'a>) -> IResult<'a, T>,
 ) -> impl FnMut(Input<'a>) -> IResult<'a, Vec<T>> {
     separated_list1(match_text(","), item)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    pub fn test_ident() {
+        use crate::parser::tokenize_sql;
+
+        let tokens = tokenize_sql(")");
+        let result = super::ident(&tokens);
+        assert!(result.is_err());
+    }
 }

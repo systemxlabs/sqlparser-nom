@@ -9,7 +9,6 @@ use crate::parser::common::{ident, match_token, AffixKind, MIN_PRECEDENCE};
 use crate::parser::error::PError;
 use crate::parser::expr::expr;
 use crate::parser::statement::select_stmt;
-use crate::parser::token::{Token, TokenKind};
 use crate::parser::{IResult, Input};
 
 pub fn table_ref(i: Input) -> IResult<TableRef> {
@@ -23,7 +22,7 @@ fn pratt_parse(i: Input, lbp: u32) -> Result<(Input, TableRef), String> {
     // find a prefix table_ref
     let (mut i, mut left) = prefix(i)?;
     loop {
-        let Some(op) = peek_operator(i) else {
+        let Ok((_, op)) = pratt_operator(i) else {
             break;
         };
         let Ok(bp) = precedence(op, AffixKind::Infix) else {
@@ -51,24 +50,110 @@ fn pratt_parse(i: Input, lbp: u32) -> Result<(Input, TableRef), String> {
 
 // find prefix table_ref
 fn prefix(i: Input) -> Result<(Input, TableRef), String> {
-    // TODO lparen
-    alt((subquery, base_table))(i).or_else(|e| Err("Can't find prefix expr".to_string()))
+    let Some(token) = i.get(0) else {
+        return Err("No token found".to_string());
+    };
+    match token.kind {
+        LParen => {
+            let (i, right) = pratt_parse(
+                i.slice(1..),
+                precedence(PrattOp::LParen, AffixKind::Prefix)?,
+            )?;
+
+            // next token should be RParen
+            let Some(next_token) = i.get(0) else {
+                return Err("Expect ')' token".to_string());
+            };
+            // eat RParen
+            let i = i.slice(1..);
+            if next_token.kind != RParen {
+                return Err("Expect ')' token".to_string());
+            }
+
+            // see if there is a alias
+            match table_alias(i) {
+                Ok((i, alias)) => {
+                    let right = match right {
+                        TableRef::BaseTable { name, .. } => TableRef::BaseTable {
+                            name,
+                            alias: Some(alias.clone()),
+                        },
+                        TableRef::Subquery { subquery, .. } => TableRef::Subquery {
+                            subquery,
+                            alias: Some(alias.clone()),
+                        },
+                        TableRef::Join { .. } => {
+                            return Err("Joined table should not have an alias".to_string());
+                        }
+                    };
+                    Ok((i, right))
+                }
+                Err(_) => Ok((i, right)),
+            }
+        }
+        // subquery
+        SELECT => {
+            let Ok((i, query)) = select_stmt(i) else {
+                return Err("can not find prefix subquery".to_string());
+            };
+            Ok((
+                i,
+                TableRef::Subquery {
+                    subquery: Box::new(query),
+                    alias: None,
+                },
+            ))
+        }
+        // base table
+        Ident => {
+            let Ok((i, table_ref)) = base_table(i) else {
+                return Err("can not find prefix base table".to_string());
+            };
+            Ok((i, table_ref))
+        }
+        _ => Err("First token can't be treated as prefix".to_string()),
+    }
 }
 
 // find infix table_ref
 fn infix(i: Input, left: TableRef) -> Result<(Input, TableRef), String> {
     // find infix operator to get its precedence
-    let Some(op) = peek_operator(i) else {
+    let Ok((i, op)) = pratt_operator(i) else {
         return Err("No infix operator found".to_string());
     };
-    let i = i.slice(1..);
-    todo!()
+    match op {
+        PrattOp::JoinOp(op) => {
+            let (i, right) = pratt_parse(i, precedence(PrattOp::JoinOp(op), AffixKind::Infix)?)?;
+            let Ok((i, condition)) = join_condition(i) else {
+                return Err("failed to parse join condition".to_string());
+            };
+            Ok((
+                i,
+                TableRef::Join {
+                    op,
+                    condition,
+                    left: Box::new(left),
+                    right: Box::new(right),
+                },
+            ))
+        }
+        _ => {
+            return Err("The pratt operator can't be treated as infix".to_string());
+        }
+    }
 }
 
 enum PrattOp {
-    JoinOp,
+    JoinOp(JoinOp),
     LParen,
     RParen,
+}
+fn pratt_operator(i: Input) -> IResult<PrattOp> {
+    alt((
+        match_token(LParen).map(|_| PrattOp::LParen),
+        match_token(RParen).map(|_| PrattOp::RParen),
+        join_operator.map(|op| PrattOp::JoinOp(op)),
+    ))(i)
 }
 
 fn precedence(op: PrattOp, affix: AffixKind) -> Result<u32, String> {
@@ -80,7 +165,7 @@ fn precedence(op: PrattOp, affix: AffixKind) -> Result<u32, String> {
         },
         AffixKind::Infix => match op {
             PrattOp::RParen => Ok(0),
-            PrattOp::JoinOp => Ok(1),
+            PrattOp::JoinOp(_) => Ok(1),
             _ => Err("pratt operator can't be treated as infix".to_string()),
         },
     }
@@ -91,58 +176,8 @@ fn base_table(i: Input) -> IResult<TableRef> {
         .map(|(i, (name, alias))| (i, TableRef::BaseTable { name, alias }))
 }
 
-fn subquery(i: Input) -> IResult<TableRef> {
-    tuple((
-        match_token(LParen),
-        select_stmt,
-        match_token(RParen),
-        opt(table_alias),
-    ))(i)
-    .map(|(i, (_, subquery, _, alias))| {
-        (
-            i,
-            TableRef::Subquery {
-                subquery: Box::new(subquery),
-                alias,
-            },
-        )
-    })
-}
-
-fn join(i: Input) -> IResult<TableRef> {
-    tuple((table_ref, join_operator, table_ref, opt(join_condition)))(i).map(
-        |(i, (left, op, right, condition))| {
-            (
-                i,
-                TableRef::Join {
-                    op,
-                    condition: condition.unwrap_or(JoinCondition::None),
-                    left: Box::new(left),
-                    right: Box::new(right),
-                },
-            )
-        },
-    )
-}
-
 fn join_condition(i: Input) -> IResult<JoinCondition> {
     alt((tuple((match_token(ON), expr)).map(|(_, expr)| JoinCondition::On(Box::new(expr))),))(i)
-}
-
-fn peek_operator(i: Input) -> Option<PrattOp> {
-    if let Some(token) = i.get(0) {
-        if matches!(token.kind, LParen) {
-            return Some(PrattOp::LParen);
-        }
-        if matches!(token.kind, RParen) {
-            return Some(PrattOp::RParen);
-        }
-    }
-    let res = join_operator(i);
-    return match res {
-        Ok((_, _)) => Some(PrattOp::JoinOp),
-        Err(_) => None,
-    };
 }
 
 fn join_operator(i: Input) -> IResult<JoinOp> {
@@ -175,22 +210,27 @@ fn table_name(i: Input) -> IResult<TableName> {
 }
 
 fn table_alias(i: Input) -> IResult<crate::ast::Ident> {
-    tuple((match_token(AS), ident))(i).map(|(i, (_, alias))| (i, alias))
+    alt((
+        tuple((match_token(AS), ident)).map(|(_, alias)| alias),
+        ident,
+    ))(i)
 }
 
 #[cfg(test)]
 mod tests {
-    // #[test]
-    // pub fn test_join() {
-    //     use crate::parser::tokenize_sql;
-    //
-    //     let tokens = tokenize_sql("t1 join t2 on t1.a = t2.a");
-    //     let result = super::join(&tokens);
-    //     println!("{:?}", result);
-    //     assert!(result.is_ok());
-    //     assert_eq!(
-    //         format!("{}", result.unwrap().1),
-    //         "SELECT *, t1.a, c AS d FROM t1"
-    //     );
-    // }
+    #[test]
+    pub fn test_table_ref() {
+        use crate::parser::tokenize_sql;
+
+        let tokens = tokenize_sql("\
+        (select * from t1) as t join t2 on t.a = t2.a left join (t3 right join t4 on t3.c = t4.c) on t2.b = t3.b\
+        ");
+        let result = super::table_ref(&tokens);
+        println!("{:?}", result);
+        assert!(result.is_ok());
+        assert_eq!(
+            format!("{}", result.unwrap().1),
+            "(((SELECT * FROM t1) AS t INNER JOIN t2 ON (t.a = t2.a)) LEFT OUTER JOIN (t3 RIGHT OUTER JOIN t4 ON (t3.c = t4.c)) ON (t2.b = t3.b))"
+        );
+    }
 }

@@ -3,7 +3,7 @@ A experimental SQL query parser using nom.
 
 - [ ] Query
   - [x] Select
-  - [ ] From
+  - [x] From
   - [x] Where
   - [x] Order by
   - [x] Limit
@@ -18,10 +18,13 @@ A experimental SQL query parser using nom.
 
 ## Example
 ```sql
-select a, t.b, c 
-from t 
+select a, count(*)
+from (select * from t1) as t2
+join t3 on t2.a = t3.a
+left join t4 on t3.b = t4.b
 where a > ((1 + 2) * 3) and b < c 
 group by a, c 
+having count(*) > 5
 order by a, b desc 
 limit 1, 2
 ```
@@ -40,31 +43,128 @@ SelectStatement {
                 },
             ),
             UnnamedExpr(
-                ColumnRef {
-                    database: None,
-                    table: Some(
-                        Ident {
-                            value: "t",
-                        },
-                    ),
-                    column: Ident {
-                        value: "b",
+                Function {
+                    name: Ident {
+                        value: "count",
                     },
-                },
-            ),
-            UnnamedExpr(
-                ColumnRef {
-                    database: None,
-                    table: None,
-                    column: Ident {
-                        value: "c",
-                    },
+                    distinct: false,
+                    args: [
+                        Wildcard,
+                    ],
                 },
             ),
         ],
-        from: Ident {
-            value: "t",
-        },
+        from: Some(
+            Join {
+                op: LeftOuter,
+                condition: On(
+                    BinaryOp {
+                        left: ColumnRef {
+                            database: None,
+                            table: Some(
+                                Ident {
+                                    value: "t3",
+                                },
+                            ),
+                            column: Ident {
+                                value: "b",
+                            },
+                        },
+                        op: Eq,
+                        right: ColumnRef {
+                            database: None,
+                            table: Some(
+                                Ident {
+                                    value: "t4",
+                                },
+                            ),
+                            column: Ident {
+                                value: "b",
+                            },
+                        },
+                    },
+                ),
+                left: Join {
+                    op: Inner,
+                    condition: On(
+                        BinaryOp {
+                            left: ColumnRef {
+                                database: None,
+                                table: Some(
+                                    Ident {
+                                        value: "t2",
+                                    },
+                                ),
+                                column: Ident {
+                                    value: "a",
+                                },
+                            },
+                            op: Eq,
+                            right: ColumnRef {
+                                database: None,
+                                table: Some(
+                                    Ident {
+                                        value: "t3",
+                                    },
+                                ),
+                                column: Ident {
+                                    value: "a",
+                                },
+                            },
+                        },
+                    ),
+                    left: Subquery {
+                        subquery: SelectStatement {
+                            body: Select {
+                                projection: [
+                                    Wildcard,
+                                ],
+                                from: Some(
+                                    BaseTable {
+                                        name: TableName {
+                                            database: None,
+                                            table: Ident {
+                                                value: "t1",
+                                            },
+                                        },
+                                        alias: None,
+                                    },
+                                ),
+                                selection: None,
+                                group_by: [],
+                                having: None,
+                            },
+                            order_by: [],
+                            limit: None,
+                            offset: None,
+                        },
+                        alias: Some(
+                            Ident {
+                                value: "t2",
+                            },
+                        ),
+                    },
+                    right: BaseTable {
+                        name: TableName {
+                            database: None,
+                            table: Ident {
+                                value: "t3",
+                            },
+                        },
+                        alias: None,
+                    },
+                },
+                right: BaseTable {
+                    name: TableName {
+                        database: None,
+                        table: Ident {
+                            value: "t4",
+                        },
+                    },
+                    alias: None,
+                },
+            },
+        ),
         selection: Some(
             BinaryOp {
                 left: BinaryOp {
@@ -134,6 +234,25 @@ SelectStatement {
                 },
             },
         ],
+        having: Some(
+            BinaryOp {
+                left: Function {
+                    name: Ident {
+                        value: "count",
+                    },
+                    distinct: false,
+                    args: [
+                        Wildcard,
+                    ],
+                },
+                op: Gt,
+                right: Literal(
+                    UnsignedInteger(
+                        5,
+                    ),
+                ),
+            },
+        ),
     },
     order_by: [
         OrderByExpr {

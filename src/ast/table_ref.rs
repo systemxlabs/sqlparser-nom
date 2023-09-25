@@ -42,11 +42,12 @@ impl std::fmt::Display for TableRef {
                 left,
                 right,
             } => {
-                write!(f, "{left} {op} {right}")?;
+                write!(f, "({left} {op} {right}")?;
                 match condition {
-                    JoinCondition::On(expr) => write!(f, " ON ({})", expr)?,
+                    JoinCondition::On(expr) => write!(f, " ON {}", expr)?,
                     JoinCondition::None => {}
                 }
+                write!(f, ")")?;
                 Ok(())
             }
         }

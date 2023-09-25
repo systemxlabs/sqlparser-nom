@@ -71,13 +71,22 @@ mod tests {
         use crate::parser::tokenize_sql;
 
         let tokens = tokenize_sql(
-            "select a, t1.b, count(d) from t1 group by a, c having count(d) > 10 order by a, b desc limit 1, 2",
+            "\
+            select a, count(*) \
+from (select * from t1) as t2 \
+join t3 on t2.a = t3.a \
+left join t4 on t3.b = t4.b \
+where a > ((1 + 2) * 3) and b < c \
+group by a, c \
+having count(*) > 5\
+order by a, b desc \
+limit 1, 2",
         );
         let result = select_stmt(&tokens);
         println!("result: {:?}", result);
         assert!(result.is_ok());
         let result = result.unwrap();
         assert_eq!(result.0, vec![]);
-        println!("select_stmt: {}", result.1);
+        println!("select_stmt: {:#?}", result.1);
     }
 }
