@@ -7,7 +7,7 @@ use crate::parser::common::{comma_separated_list0, AffixKind, MIN_PRECEDENCE};
 use crate::parser::error::PError;
 use crate::parser::statement::{order_by_expr, select_stmt};
 use crate::parser::token::{
-    LParen, RParen, Token, TokenKind, BY, EXISTS, NOT, ORDER, OVER, PARTITION,
+    LParen, RParen, Token, TokenKind, BY, EXISTS, IN, NOT, ORDER, OVER, PARTITION,
 };
 
 use super::common::comma_separated_list1;
@@ -342,6 +342,13 @@ fn function_expr(i: Input) -> IResult<Expr> {
     })
 }
 
+fn function_arg(i: Input) -> IResult<FunctionArg> {
+    alt((
+        match_token(TokenKind::Multiply).map(|_| FunctionArg::Wildcard),
+        expr.map(|expr| FunctionArg::Expr(expr)),
+    ))(i)
+}
+
 fn exists_expr(i: Input) -> IResult<Expr> {
     tuple((
         opt(match_token(NOT)),
@@ -359,13 +366,6 @@ fn exists_expr(i: Input) -> IResult<Expr> {
             },
         )
     })
-}
-
-fn function_arg(i: Input) -> IResult<FunctionArg> {
-    alt((
-        match_token(TokenKind::Multiply).map(|_| FunctionArg::Wildcard),
-        expr.map(|expr| FunctionArg::Expr(expr)),
-    ))(i)
 }
 
 fn window(i: Input) -> IResult<Window> {

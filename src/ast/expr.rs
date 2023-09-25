@@ -28,6 +28,11 @@ pub enum Expr {
         not: bool,
         subquery: Box<SelectStatement>,
     },
+    InSubquery {
+        not: bool,
+        expr: Box<Expr>,
+        subquery: Box<SelectStatement>,
+    },
 }
 impl std::fmt::Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -74,6 +79,19 @@ impl std::fmt::Display for Expr {
                     write!(f, "NOT EXISTS")?;
                 } else {
                     write!(f, "EXISTS")?;
+                }
+                write!(f, " ({})", subquery)?;
+                Ok(())
+            }
+            Self::InSubquery {
+                not,
+                expr,
+                subquery,
+            } => {
+                if *not {
+                    write!(f, "{} NOT IN", expr)?;
+                } else {
+                    write!(f, "{} IN", expr)?;
                 }
                 write!(f, " ({})", subquery)?;
                 Ok(())
