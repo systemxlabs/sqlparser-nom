@@ -1,4 +1,5 @@
 use super::{expr::Expr, Ident};
+use crate::ast::expr::WindowSpec;
 use crate::ast::table_ref::TableRef;
 
 #[derive(Debug, Clone)]
@@ -9,6 +10,7 @@ pub enum SetExpr {
         selection: Option<Expr>,
         group_by: Vec<Expr>,
         having: Option<Expr>,
+        named_windows: Vec<NamedWindowDef>,
     },
 }
 impl std::fmt::Display for SetExpr {
@@ -20,6 +22,7 @@ impl std::fmt::Display for SetExpr {
                 selection,
                 group_by,
                 having,
+                named_windows,
             } => {
                 write!(
                     f,
@@ -50,6 +53,17 @@ impl std::fmt::Display for SetExpr {
                 if let Some(expr) = having {
                     write!(f, " Having {}", expr)?;
                 }
+                if !named_windows.is_empty() {
+                    write!(
+                        f,
+                        " WINDOW {}",
+                        named_windows
+                            .iter()
+                            .map(|w| w.to_string())
+                            .collect::<Vec<String>>()
+                            .join(", ")
+                    )?;
+                }
                 Ok(())
             }
         }
@@ -69,5 +83,16 @@ impl std::fmt::Display for SelectItem {
             Self::ExprWithAlias { expr, alias } => write!(f, "{} AS {}", expr, alias),
             Self::Wildcard => write!(f, "*"),
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct NamedWindowDef {
+    pub name: Ident,
+    pub spec: WindowSpec,
+}
+impl std::fmt::Display for NamedWindowDef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} AS ({})", self.name, self.spec)
     }
 }

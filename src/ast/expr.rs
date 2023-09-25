@@ -1,4 +1,5 @@
 use super::Ident;
+use crate::ast::statement::OrderByExpr;
 
 #[derive(Debug, Clone)]
 pub enum Expr {
@@ -21,6 +22,7 @@ pub enum Expr {
         name: Ident,
         distinct: bool,
         args: Vec<FunctionArg>,
+        over: Option<Window>,
     },
 }
 impl std::fmt::Display for Expr {
@@ -46,16 +48,23 @@ impl std::fmt::Display for Expr {
                 name,
                 distinct,
                 args,
-            } => write!(
-                f,
-                "{}({}{})",
-                name,
-                if *distinct { "DISTINCT " } else { "" },
-                args.iter()
-                    .map(|a| a.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
+                over,
+            } => {
+                write!(
+                    f,
+                    "{}({}{})",
+                    name,
+                    if *distinct { "DISTINCT " } else { "" },
+                    args.iter()
+                        .map(|a| a.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )?;
+                if let Some(window) = over {
+                    write!(f, " OVER {window}")?;
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -146,5 +155,57 @@ impl std::fmt::Display for FunctionArg {
             Self::Wildcard => write!(f, "*"),
             Self::Expr(expr) => write!(f, "{}", expr),
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum Window {
+    WindowRef(Ident),
+    WindowSpec(WindowSpec),
+}
+impl std::fmt::Display for Window {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::WindowRef(name) => write!(f, "{}", name),
+            Self::WindowSpec(spec) => write!(f, "({})", spec),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct WindowSpec {
+    pub partition_by: Vec<Expr>,
+    pub order_by: Vec<OrderByExpr>,
+}
+
+impl std::fmt::Display for WindowSpec {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut delim = "";
+        if !self.partition_by.is_empty() {
+            delim = " ";
+            write!(
+                f,
+                "PARTITION BY {}",
+                self.partition_by
+                    .iter()
+                    .map(|e| e.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            )?;
+        }
+        if !self.order_by.is_empty() {
+            f.write_str(delim)?;
+            // delim = " ";
+            write!(
+                f,
+                "ORDER BY {}",
+                self.order_by
+                    .iter()
+                    .map(|e| e.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            )?;
+        }
+        Ok(())
     }
 }

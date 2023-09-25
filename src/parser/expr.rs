@@ -2,10 +2,11 @@ use nom::combinator::opt;
 use nom::{branch::alt, sequence::tuple};
 use nom::{Parser, Slice};
 
-use crate::ast::expr::{BinaryOp, Expr, FunctionArg, Literal, UnaryOp};
+use crate::ast::expr::{BinaryOp, Expr, FunctionArg, Literal, UnaryOp, Window, WindowSpec};
 use crate::parser::common::{AffixKind, MIN_PRECEDENCE};
 use crate::parser::error::PError;
-use crate::parser::token::{Token, TokenKind};
+use crate::parser::statement::order_by_expr;
+use crate::parser::token::{LParen, RParen, Token, TokenKind, BY, ORDER, OVER, PARTITION};
 
 use super::common::comma_separated_list1;
 use super::{
@@ -312,14 +313,16 @@ fn function_expr(i: Input) -> IResult<Expr> {
         opt(match_token(TokenKind::DISTINCT)),
         comma_separated_list1(function_arg),
         match_token(TokenKind::RParen),
+        opt(window),
     ))(i)
-    .map(|(i, (name, _, distinct, args, _))| {
+    .map(|(i, (name, _, distinct, args, _, over))| {
         (
             i,
             Expr::Function {
                 name,
                 distinct: distinct.is_some(),
                 args,
+                over,
             },
         )
     })
@@ -330,6 +333,43 @@ fn function_arg(i: Input) -> IResult<FunctionArg> {
         match_token(TokenKind::Multiply).map(|_| FunctionArg::Wildcard),
         expr.map(|expr| FunctionArg::Expr(expr)),
     ))(i)
+}
+
+fn window(i: Input) -> IResult<Window> {
+    alt((
+        tuple((match_token(OVER), ident)).map(|(_, window_ref)| Window::WindowRef(window_ref)),
+        tuple((
+            match_token(OVER),
+            match_token(LParen),
+            window_spec,
+            match_token(RParen),
+        ))
+        .map(|(_, _, spec, _)| Window::WindowSpec(spec)),
+    ))(i)
+}
+
+pub fn window_spec(i: Input) -> IResult<WindowSpec> {
+    tuple((
+        opt(tuple((
+            match_token(PARTITION),
+            match_token(BY),
+            comma_separated_list1(expr),
+        ))),
+        opt(tuple((
+            match_token(ORDER),
+            match_token(BY),
+            comma_separated_list1(order_by_expr),
+        ))),
+    ))(i)
+    .map(|(i, (partition_by, order_by))| {
+        (
+            i,
+            WindowSpec {
+                partition_by: partition_by.map_or(vec![], |p| p.2),
+                order_by: order_by.map_or(vec![], |o| o.2),
+            },
+        )
+    })
 }
 
 mod tests {
@@ -391,12 +431,13 @@ mod tests {
         use crate::parser::expr::function_expr;
         use crate::parser::tokenize_sql;
 
-        let tokens = tokenize_sql("count(distinct a)");
+        let tokens = tokenize_sql("count(distinct a) over (partition by a order by b)");
         let result = function_expr(&tokens);
         println!("{:?}", result);
         assert!(result.is_ok());
         let result = result.unwrap();
         assert!(result.0.is_empty());
         assert!(matches!(result.1, Expr::Function { .. }));
+        println!("{}", result.1);
     }
 }

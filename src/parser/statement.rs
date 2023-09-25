@@ -38,7 +38,7 @@ fn order_by_clause(i: Input) -> IResult<Vec<OrderByExpr>> {
     ))(i)
     .map(|(i, (_, _, order_by_list))| (i, order_by_list))
 }
-fn order_by_expr(i: Input) -> IResult<OrderByExpr> {
+pub fn order_by_expr(i: Input) -> IResult<OrderByExpr> {
     alt((
         tuple((expr, match_token(ASC))).map(|(expr, _)| OrderByExpr {
             expr,
@@ -88,5 +88,22 @@ limit 1, 2",
         let result = result.unwrap();
         assert_eq!(result.0, vec![]);
         println!("select_stmt: {:#?}", result.1);
+    }
+
+    #[test]
+    pub fn test_named_windows() {
+        use super::select_stmt;
+        use crate::parser::tokenize_sql;
+
+        let tokens = tokenize_sql(
+            "\
+            select count(*) over w from t window w as (partition by a order by b)",
+        );
+        let result = select_stmt(&tokens);
+        println!("result: {:?}", result);
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert_eq!(result.0, vec![]);
+        println!("select_stmt: {:?}", result.1);
     }
 }

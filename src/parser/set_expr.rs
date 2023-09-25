@@ -3,7 +3,8 @@ use nom::Parser;
 use nom::{branch::alt, sequence::tuple};
 
 use crate::ast::expr::Expr;
-use crate::ast::set_expr::{SelectItem, SetExpr};
+use crate::ast::set_expr::{NamedWindowDef, SelectItem, SetExpr};
+use crate::parser::expr::window_spec;
 use crate::parser::table_ref::table_ref;
 use crate::parser::token::*;
 
@@ -19,19 +20,23 @@ pub fn select_set_expr(i: Input) -> IResult<SetExpr> {
         opt(where_clause),
         opt(group_by_clause),
         opt(having_clause),
+        opt(window_clause),
     ))(i)
-    .map(|(i, (_, projection, from, selection, group_by, having))| {
-        (
-            i,
-            SetExpr::Select {
-                projection,
-                from: from.map(|(_, from)| from),
-                selection,
-                group_by: group_by.unwrap_or(vec![]),
-                having,
-            },
-        )
-    })
+    .map(
+        |(i, (_, projection, from, selection, group_by, having, named_windows))| {
+            (
+                i,
+                SetExpr::Select {
+                    projection,
+                    from: from.map(|(_, from)| from),
+                    selection,
+                    group_by: group_by.unwrap_or(vec![]),
+                    having,
+                    named_windows: named_windows.map_or(vec![], |v| v),
+                },
+            )
+        },
+    )
 }
 
 fn select_item(i: Input) -> IResult<SelectItem> {
@@ -58,6 +63,22 @@ fn group_by_clause(i: Input) -> IResult<Vec<Expr>> {
 
 fn having_clause(i: Input) -> IResult<Expr> {
     tuple((match_token(HAVING), expr))(i).map(|(i, (_, having))| (i, having))
+}
+
+fn window_clause(i: Input) -> IResult<Vec<NamedWindowDef>> {
+    tuple((match_token(WINDOW), comma_separated_list1(named_window_def)))(i)
+        .map(|(i, (_, defs))| (i, defs))
+}
+
+fn named_window_def(i: Input) -> IResult<NamedWindowDef> {
+    tuple((
+        ident,
+        match_token(AS),
+        match_token(LParen),
+        window_spec,
+        match_token(RParen),
+    ))(i)
+    .map(|(i, (name, _, _, spec, _))| (i, NamedWindowDef { name, spec }))
 }
 
 #[cfg(test)]

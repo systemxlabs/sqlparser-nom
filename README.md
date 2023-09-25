@@ -8,11 +8,10 @@ A experimental SQL query parser using nom.
   - [x] Order by
   - [x] Limit
   - [ ] CTE
-  - [ ] Into
   - [x] Group by
   - [x] Having
   - [x] Aggregate
-  - [ ] Window
+  - [x] Window
 - [x] Pratt Parsing
 - [ ] Friendly error info
 
@@ -303,3 +302,5 @@ SelectStatement {
 - [Queries - Microsoft SQL Doc](https://learn.microsoft.com/en-us/sql/t-sql/queries/queries)
 - [Simple but Powerful Pratt Parsing](https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html)
 - [手写一个Parser - 代码简单而功能强大的Pratt Parsing](https://zhuanlan.zhihu.com/p/471075848)
+- [sqlparser-rs](https://github.com/sqlparser-rs/sqlparser-rs)
+- [databend](https://github.com/datafuselabs/databend/tree/main/src/query/ast)
