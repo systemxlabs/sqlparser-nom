@@ -218,6 +218,9 @@ pub enum TokenKind {
     #[token("PARTITION", ignore(ascii_case))]
     PARTITION,
 
+    #[token("RECURSIVE", ignore(ascii_case))]
+    RECURSIVE,
+
     #[token("RIGHT", ignore(ascii_case))]
     RIGHT,
 
@@ -327,6 +330,7 @@ impl std::fmt::Display for TokenKind {
             OUTER => write!(f, "OUTER"),
             OVER => write!(f, "OVER"),
             PARTITION => write!(f, "PARTITION"),
+            RECURSIVE => write!(f, "RECURSIVE"),
             RIGHT => write!(f, "RIGHT"),
             SELECT => write!(f, "SELECT"),
             WHERE => write!(f, "WHERE"),

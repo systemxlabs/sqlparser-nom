@@ -3,8 +3,9 @@ use nom::combinator::opt;
 use nom::sequence::tuple;
 use nom::Parser;
 
-use crate::ast::statement::OrderByExpr;
+use crate::ast::statement::{Cte, OrderByExpr, TableAlias, With};
 use crate::ast::{expr::Expr, statement::SelectStatement};
+use crate::parser::common::ident;
 use crate::parser::token::*;
 
 use super::common::comma_separated_list1;
@@ -12,15 +13,17 @@ use super::{common::match_token, expr::expr, set_expr::select_set_expr, IResult,
 
 pub fn select_stmt(i: Input) -> IResult<SelectStatement> {
     tuple((
+        opt(with_clause),
         select_set_expr,
         opt(order_by_clause),
         opt(limit_offset_clause),
     ))(i)
-    .map(|(i, (select, order_by, limitoffset))| {
+    .map(|(i, (with, select, order_by, limitoffset))| {
         let (limit, offset) = limitoffset.unwrap_or((None, None));
         (
             i,
             SelectStatement {
+                with,
                 body: select,
                 order_by: order_by.unwrap_or(vec![]),
                 limit,
@@ -28,6 +31,57 @@ pub fn select_stmt(i: Input) -> IResult<SelectStatement> {
             },
         )
     })
+}
+
+fn with_clause(i: Input) -> IResult<With> {
+    tuple((
+        match_token(WITH),
+        opt(match_token(RECURSIVE)),
+        comma_separated_list1(cte),
+    ))(i)
+    .map(|(i, (_, recursive, cte_tables))| {
+        (
+            i,
+            With {
+                recursive: recursive.is_some(),
+                cte_tables,
+            },
+        )
+    })
+}
+
+fn cte(i: Input) -> IResult<Cte> {
+    tuple((
+        table_alias,
+        match_token(LParen),
+        select_stmt,
+        match_token(RParen),
+    ))(i)
+    .map(|(i, (alias, _, query, _))| {
+        (
+            i,
+            Cte {
+                alias,
+                query: Box::new(query),
+            },
+        )
+    })
+}
+
+fn table_alias(i: Input) -> IResult<TableAlias> {
+    alt((
+        tuple((
+            ident,
+            match_token(LParen),
+            comma_separated_list1(ident),
+            match_token(RParen),
+        ))
+        .map(|(name, _, columns, _)| TableAlias { name, columns }),
+        ident.map(|name| TableAlias {
+            name,
+            columns: vec![],
+        }),
+    ))(i)
 }
 
 fn order_by_clause(i: Input) -> IResult<Vec<OrderByExpr>> {
