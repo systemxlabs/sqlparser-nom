@@ -76,8 +76,14 @@ pub fn test_query() {
             r#"SELECT age, person FROM table LIMIT 10"#,
         ),
         // except/exclude
-        // (r#"SELECT * EXCEPT(age, person) FROM table;"#, r#""#),
-        // (r#"SELECT * EXCLUDE(age, person) FROM table;"#, r#""#),
+        (
+            r#"SELECT * EXCEPT(age, person) FROM table;"#,
+            r#"SELECT * EXCEPT (age, person) FROM table"#,
+        ),
+        (
+            r#"SELECT * EXCLUDE(age, person) FROM table;"#,
+            r#"SELECT * EXCLUDE (age, person) FROM table"#,
+        ),
         // subquery
         // (r#"select * from x y where exists (select * from x where x.column_1 = y.column_1);"#, r#""#),
         // (r#"select * from x y where not exists (select * from x where x.column_1 = y.column_1);"#, r#""#),

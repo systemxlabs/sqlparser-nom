@@ -158,6 +158,12 @@ pub enum TokenKind {
     #[token("DISTINCT", ignore(ascii_case))]
     DISTINCT,
 
+    #[token("EXCEPT", ignore(ascii_case))]
+    EXCEPT,
+
+    #[token("EXCLUDE", ignore(ascii_case))]
+    EXCLUDE,
+
     #[token("EXISTS", ignore(ascii_case))]
     EXISTS,
 
@@ -316,6 +322,8 @@ impl std::fmt::Display for TokenKind {
             CROSS => write!(f, "CROSS"),
             DESC => write!(f, "DESC"),
             DISTINCT => write!(f, "DISTINCT"),
+            EXCEPT => write!(f, "EXCEPT"),
+            EXCLUDE => write!(f, "EXCLUDE"),
             EXISTS => write!(f, "EXISTS"),
             FROM => write!(f, "FROM"),
             FULL => write!(f, "FULL"),

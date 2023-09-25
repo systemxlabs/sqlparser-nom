@@ -3,7 +3,7 @@ use nom::Parser;
 use nom::{branch::alt, sequence::tuple};
 
 use crate::ast::expr::Expr;
-use crate::ast::set_expr::{NamedWindowDef, SelectItem, SetExpr};
+use crate::ast::set_expr::{NamedWindowDef, SelectItem, SetExpr, WildcardOptions};
 use crate::parser::expr::window_spec;
 use crate::parser::table_ref::table_ref;
 use crate::parser::token::*;
@@ -43,11 +43,34 @@ pub fn select_set_expr(i: Input) -> IResult<SetExpr> {
 
 fn select_item(i: Input) -> IResult<SelectItem> {
     alt((
-        match_text("*").map(|_| SelectItem::Wildcard),
+        tuple((match_text("*"), wildcard_options))
+            .map(|(_, options)| SelectItem::Wildcard(options)),
         tuple((expr, match_token(AS), ident))
             .map(|(expr, _, alias)| SelectItem::ExprWithAlias { expr, alias }),
         expr.map(|expr| SelectItem::UnnamedExpr(expr)),
     ))(i)
+}
+
+fn wildcard_options(i: Input) -> IResult<WildcardOptions> {
+    tuple((
+        opt(tuple((
+            match_token(EXCLUDE),
+            match_token(LParen),
+            comma_separated_list1(ident),
+            match_token(RParen),
+        ))),
+        opt(tuple((
+            match_token(EXCEPT),
+            match_token(LParen),
+            comma_separated_list1(ident),
+            match_token(RParen),
+        ))),
+    ))(i)
+    .map(|(i, (exclude, except))| {
+        let exclude: Vec<crate::ast::Ident> = exclude.map_or(vec![], |(_, _, cols, _)| cols);
+        let except: Vec<crate::ast::Ident> = except.map_or(vec![], |(_, _, cols, _)| cols);
+        (i, WildcardOptions { exclude, except })
+    })
 }
 
 fn where_clause(i: Input) -> IResult<Expr> {

@@ -77,15 +77,55 @@ impl std::fmt::Display for SetExpr {
 pub enum SelectItem {
     UnnamedExpr(Expr),
     ExprWithAlias { expr: Expr, alias: Ident },
-    Wildcard,
+    Wildcard(WildcardOptions),
 }
 impl std::fmt::Display for SelectItem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::UnnamedExpr(expr) => write!(f, "{}", expr),
             Self::ExprWithAlias { expr, alias } => write!(f, "{} AS {}", expr, alias),
-            Self::Wildcard => write!(f, "*"),
+            Self::Wildcard(options) => write!(f, "*{}", options),
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct WildcardOptions {
+    pub exclude: Vec<Ident>,
+    pub except: Vec<Ident>,
+}
+impl std::fmt::Display for WildcardOptions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if !self.exclude.is_empty() {
+            write!(
+                f,
+                " EXCLUDE {}",
+                if self.exclude.len() == 1 {
+                    self.exclude.get(0).unwrap().to_string()
+                } else {
+                    format!(
+                        "({})",
+                        self.exclude
+                            .iter()
+                            .map(|col| col.to_string())
+                            .collect::<Vec<String>>()
+                            .join(", ")
+                    )
+                }
+            )?;
+        }
+        if !self.except.is_empty() {
+            write!(
+                f,
+                " EXCEPT ({})",
+                self.except
+                    .iter()
+                    .map(|col| col.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            )?;
+        }
+        Ok(())
     }
 }
 
