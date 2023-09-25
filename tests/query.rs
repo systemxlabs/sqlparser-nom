@@ -89,7 +89,10 @@ pub fn test_query() {
             r#"SELECT depname, empno, salary, avg(salary) OVER (PARTITION BY depname) FROM empsalary;"#,
             r#"SELECT depname, empno, salary, avg(salary) OVER (PARTITION BY depname) FROM empsalary"#,
         ),
-        // (r#"SELECT depname, empno, salary, rank() OVER (PARTITION BY depname ORDER BY salary DESC) FROM empsalary;"#, r#""#),
+        (
+            r#"SELECT depname, empno, salary, rank() OVER (PARTITION BY depname ORDER BY salary DESC) FROM empsalary;"#,
+            r#"SELECT depname, empno, salary, rank() OVER (PARTITION BY depname ORDER BY salary DESC) FROM empsalary"#,
+        ),
         // (r#"SELECT depname, empno, salary, avg(salary) OVER(ORDER BY salary ASC ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) AS avg, min(salary) OVER(ORDER BY empno ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cum_min FROM empsalary ORDER BY empno ASC;"#, r#""#),
         (
             r#"SELECT sum(salary) OVER w, avg(salary) OVER w FROM empsalary WINDOW w AS (PARTITION BY depname ORDER BY salary DESC);"#,
@@ -98,6 +101,7 @@ pub fn test_query() {
     ];
     for (input, output) in &cases {
         let result = parse_query(input);
+        println!("{:?}", result);
         assert!(result.is_ok());
         let result = result.unwrap();
         assert_eq!(output, &result.to_string());

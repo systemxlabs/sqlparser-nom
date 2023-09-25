@@ -3,7 +3,7 @@ use nom::{branch::alt, sequence::tuple};
 use nom::{Parser, Slice};
 
 use crate::ast::expr::{BinaryOp, Expr, FunctionArg, Literal, UnaryOp, Window, WindowSpec};
-use crate::parser::common::{AffixKind, MIN_PRECEDENCE};
+use crate::parser::common::{comma_separated_list0, AffixKind, MIN_PRECEDENCE};
 use crate::parser::error::PError;
 use crate::parser::statement::order_by_expr;
 use crate::parser::token::{LParen, RParen, Token, TokenKind, BY, ORDER, OVER, PARTITION};
@@ -311,7 +311,7 @@ fn function_expr(i: Input) -> IResult<Expr> {
         ident,
         match_token(TokenKind::LParen),
         opt(match_token(TokenKind::DISTINCT)),
-        comma_separated_list1(function_arg),
+        comma_separated_list0(function_arg),
         match_token(TokenKind::RParen),
         opt(window),
     ))(i)

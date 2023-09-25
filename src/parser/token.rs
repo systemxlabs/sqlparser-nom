@@ -149,6 +149,9 @@ pub enum TokenKind {
     #[token("BY", ignore(ascii_case))]
     BY,
 
+    #[token("CROSS", ignore(ascii_case))]
+    CROSS,
+
     #[token("DESC", ignore(ascii_case))]
     DESC,
 
@@ -310,6 +313,7 @@ impl std::fmt::Display for TokenKind {
             AS => write!(f, "AS"),
             ASC => write!(f, "ASC"),
             BY => write!(f, "BY"),
+            CROSS => write!(f, "CROSS"),
             DESC => write!(f, "DESC"),
             DISTINCT => write!(f, "DISTINCT"),
             EXISTS => write!(f, "EXISTS"),

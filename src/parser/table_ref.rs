@@ -193,6 +193,7 @@ fn join_operator(i: Input) -> IResult<JoinOp> {
         tuple((match_token(FULL), match_token(JOIN))).map(|(_, _)| JoinOp::FullOuter),
         tuple((match_token(FULL), match_token(OUTER), match_token(JOIN)))
             .map(|(_, _, _)| JoinOp::FullOuter),
+        tuple((match_token(CROSS), match_token(JOIN))).map(|(_, _)| JoinOp::CrossJoin),
     ))(i)
 }
 
