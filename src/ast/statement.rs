@@ -11,6 +11,9 @@ pub struct SelectStatement {
 }
 impl std::fmt::Display for SelectStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(with) = &self.with {
+            write!(f, "{} ", with)?;
+        }
         write!(f, "{}", self.body)?;
         if self.order_by.len() > 0 {
             write!(

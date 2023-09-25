@@ -53,11 +53,12 @@ fn with_clause(i: Input) -> IResult<With> {
 fn cte(i: Input) -> IResult<Cte> {
     tuple((
         table_alias,
+        match_token(AS),
         match_token(LParen),
         select_stmt,
         match_token(RParen),
     ))(i)
-    .map(|(i, (alias, _, query, _))| {
+    .map(|(i, (alias, _, _, query, _))| {
         (
             i,
             Cte {

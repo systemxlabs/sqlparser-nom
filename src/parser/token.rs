@@ -133,6 +133,9 @@ pub enum TokenKind {
     #[token(".")]
     Dot,
 
+    #[token(";")]
+    SemiColon,
+
     // Keywords
     #[token("AND", ignore(ascii_case))]
     AND,
@@ -302,6 +305,7 @@ impl std::fmt::Display for TokenKind {
             RParen => write!(f, "RParen"),
             Comma => write!(f, "Comma"),
             Dot => write!(f, "Dot"),
+            SemiColon => write!(f, "SemiColon"),
             AND => write!(f, "AND"),
             AS => write!(f, "AS"),
             ASC => write!(f, "ASC"),
