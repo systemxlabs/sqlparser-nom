@@ -4,7 +4,7 @@ pub mod statement;
 pub mod table_ref;
 
 /// An identifier
-#[derive(derive_new::new, Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Ident {
     pub value: String,
 }

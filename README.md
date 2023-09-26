@@ -16,6 +16,7 @@ A SQL query parser using nom.
 - [ ] Friendly error info
 
 ## Example
+more expamples can be found in [tests](tests/query.rs).
 ```sql
 select a, count(*)
 from (select * from t1) as t2
