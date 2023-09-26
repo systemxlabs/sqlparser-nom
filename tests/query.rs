@@ -101,7 +101,10 @@ pub fn test_query() {
             r#"select * from x where column_1 not in (select column_1 from x);"#,
             r#"SELECT * FROM x WHERE column_1 NOT IN (SELECT column_1 FROM x)"#,
         ),
-        // (r#"select * from x y where column_1 < (select sum(column_2) from x where x.column_1 = y.column_1);"#, r#""#),
+        (
+            r#"select * from x y where column_1 < (select sum(column_2) from x where x.column_1 = y.column_1);"#,
+            r#"SELECT * FROM x AS y WHERE (column_1 < (SELECT sum(column_2) FROM x WHERE (x.column_1 = y.column_1)))"#,
+        ),
         // window function
         (
             r#"SELECT depname, empno, salary, avg(salary) OVER (PARTITION BY depname) FROM empsalary;"#,

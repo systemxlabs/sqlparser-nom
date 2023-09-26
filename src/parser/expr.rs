@@ -122,7 +122,7 @@ fn prefix(i: Input) -> Result<(Input, PrattExpr), String> {
             let Ok((i, stmt)) = select_stmt(i) else {
                 return Err("can not parse select statement".to_string());
             };
-            Ok((i, PrattExpr::Query(stmt)))
+            Ok((i, PrattExpr::Expr(Expr::Subquery(Box::new(stmt)))))
         }
         _ => Err("First token can't be treated as prefix".to_string()),
     }
@@ -308,22 +308,23 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
     }
 }
 
+/// This is a general representation of pratt expression.
 #[derive(Debug, Clone)]
 enum PrattExpr {
     Expr(Expr),
-    Query(SelectStatement),
 }
 impl PrattExpr {
     pub fn into_expr(self) -> Expr {
         match self {
             PrattExpr::Expr(expr) => expr,
-            _ => panic!("PrattExpr is not expr"),
         }
     }
     pub fn into_query(self) -> SelectStatement {
         match self {
-            PrattExpr::Query(stmt) => stmt,
-            _ => panic!("PrattExpr is not query"),
+            PrattExpr::Expr(expr) => match expr {
+                Expr::Subquery(query) => *query,
+                _ => panic!("Failed to PrattExpr.into_query"),
+            },
         }
     }
 }

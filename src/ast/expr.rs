@@ -9,6 +9,7 @@ pub enum Expr {
         column: Ident,
     },
     Literal(Literal),
+    Subquery(Box<SelectStatement>),
     UnaryOp {
         op: UnaryOp,
         expr: Box<Expr>,
@@ -51,6 +52,7 @@ impl std::fmt::Display for Expr {
                 write!(f, "{}", column)
             }
             Self::Literal(literal) => write!(f, "{}", literal),
+            Self::Subquery(query) => write!(f, "({})", query),
             Self::UnaryOp { op, expr } => write!(f, "{}{}", op, expr),
             Self::BinaryOp { left, op, right } => write!(f, "({} {} {})", left, op, right),
             Self::Function {
