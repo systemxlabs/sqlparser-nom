@@ -124,14 +124,14 @@ fn infix(i: Input, left: TableRef) -> Result<(Input, TableRef), String> {
     match op {
         PrattOp::JoinOp(op) => {
             let (i, right) = pratt_parse(i, precedence(PrattOp::JoinOp(op), AffixKind::Infix)?)?;
-            let Ok((i, condition)) = join_condition(i) else {
+            let Ok((i, condition)) = opt(join_condition)(i) else {
                 return Err("failed to parse join condition".to_string());
             };
             Ok((
                 i,
                 TableRef::Join {
                     op,
-                    condition,
+                    condition: condition.map_or(JoinCondition::None, |condition| condition),
                     left: Box::new(left),
                     right: Box::new(right),
                 },

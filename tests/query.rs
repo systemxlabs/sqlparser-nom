@@ -45,13 +45,15 @@ pub fn test_query() {
             r#"SELECT * FROM (x FULL OUTER JOIN x AS y ON (x.column_1 = y.column_2))"#,
         ),
         // (r#"select * from x natural join x y;"#, r#""#),
-        // (r#"select * from x cross join x y;"#, r#""#),
+        (
+            r#"select * from x cross join x y;"#,
+            r#"SELECT * FROM (x CROSS JOIN x AS y)"#,
+        ),
         // group by
         (
             r#"SELECT a, b, MAX(c) FROM table GROUP BY a, b"#,
             r#"SELECT a, b, MAX(c) FROM table GROUP BY a, b"#,
         ),
-        // (r#"SELECT a, b, ARRAY_AGG(c, ORDER BY d) FROM table GROUP BY a, b"#, r#""#),
         // having
         (
             r#"SELECT a, b, MAX(c) FROM table GROUP BY a, b HAVING MAX(c) > 10"#,
@@ -122,7 +124,7 @@ pub fn test_query() {
     ];
     for (input, output) in &cases {
         let result = parse_query(input);
-        println!("{:?}", result);
+        // println!("{:?}", result);
         assert!(result.is_ok());
         let result = result.unwrap();
         assert_eq!(output, &result.to_string());
