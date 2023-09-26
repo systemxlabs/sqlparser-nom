@@ -8,7 +8,7 @@ use crate::parser::common::{comma_separated_list0, AffixKind, MIN_PRECEDENCE};
 use crate::parser::error::PError;
 use crate::parser::statement::{order_by_expr, select_stmt};
 use crate::parser::token::{
-    LParen, RParen, Token, TokenKind, BY, EXISTS, IN, NOT, ORDER, OVER, PARTITION,
+    LParen, RParen, Token, TokenKind, BY, EXISTS, NOT, ORDER, OVER, PARTITION,
 };
 
 use super::common::comma_separated_list1;
@@ -117,6 +117,12 @@ fn prefix(i: Input) -> Result<(Input, PrattExpr), String> {
                     expr: Box::new(pratt_expr.into_expr()),
                 }),
             ))
+        }
+        TokenKind::SELECT => {
+            let Ok((i, stmt)) = select_stmt(i) else {
+                return Err("can not parse select statement".to_string());
+            };
+            Ok((i, PrattExpr::Query(stmt)))
         }
         _ => Err("First token can't be treated as prefix".to_string()),
     }
@@ -261,6 +267,17 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
                 }),
             ))
         }
+        TokenKind::IN => {
+            let (i, pratt_right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            Ok((
+                i,
+                PrattExpr::Expr(Expr::InSubquery {
+                    not: false,
+                    expr: Box::new(pratt_left.into_expr()),
+                    subquery: Box::new(pratt_right.into_query()),
+                }),
+            ))
+        }
         _ => {
             return Err("The token can't be treated as infix".to_string());
         }
@@ -270,7 +287,7 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
 #[derive(Debug, Clone)]
 enum PrattExpr {
     Expr(Expr),
-    Subquery(SelectStatement),
+    Query(SelectStatement),
 }
 impl PrattExpr {
     pub fn into_expr(self) -> Expr {
@@ -279,10 +296,10 @@ impl PrattExpr {
             _ => panic!("PrattExpr is not expr"),
         }
     }
-    pub fn into_subquery(self) -> SelectStatement {
+    pub fn into_query(self) -> SelectStatement {
         match self {
-            PrattExpr::Subquery(stmt) => stmt,
-            _ => panic!("PrattExpr is not subquery"),
+            PrattExpr::Query(stmt) => stmt,
+            _ => panic!("PrattExpr is not query"),
         }
     }
 }
@@ -297,6 +314,7 @@ fn precedence(token: &Token, affix: AffixKind) -> Result<u32, String> {
         },
         AffixKind::Infix => match token.kind {
             TokenKind::RParen => Ok(0),
+            TokenKind::IN => Ok(7),
             TokenKind::OR => Ok(8),
             TokenKind::AND => Ok(9),
             TokenKind::Gt

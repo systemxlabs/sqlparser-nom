@@ -93,7 +93,10 @@ pub fn test_query() {
             r#"select * from x y where not exists (select * from x where x.column_1 = y.column_1);"#,
             r#"SELECT * FROM x AS y WHERE NOT EXISTS (SELECT * FROM x WHERE (x.column_1 = y.column_1))"#,
         ),
-        // (r#"select * from x where column_1 in (select column_1 from x);"#, r#""#),
+        (
+            r#"select * from x where column_1 in (select column_1 from x);"#,
+            r#"SELECT * FROM x WHERE column_1 IN (SELECT column_1 FROM x)"#,
+        ),
         // (r#"select * from x where column_1 not in (select column_1 from x);"#, r#""#),
         // (r#"select * from x y where column_1 < (select sum(column_2) from x where x.column_1 = y.column_1);"#, r#""#),
         // window function
