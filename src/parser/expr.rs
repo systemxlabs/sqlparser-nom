@@ -3,6 +3,7 @@ use nom::{branch::alt, sequence::tuple};
 use nom::{Parser, Slice};
 
 use crate::ast::expr::{BinaryOp, Expr, FunctionArg, Literal, UnaryOp, Window, WindowSpec};
+use crate::ast::statement::SelectStatement;
 use crate::parser::common::{comma_separated_list0, AffixKind, MIN_PRECEDENCE};
 use crate::parser::error::PError;
 use crate::parser::statement::{order_by_expr, select_stmt};
@@ -18,15 +19,15 @@ use super::{
 
 pub fn expr(i: Input) -> IResult<Expr> {
     match pratt_parse(i, MIN_PRECEDENCE) {
-        Ok(r) => Ok(r),
+        Ok((i, pratt_expr)) => Ok((i, pratt_expr.into_expr())),
         Err(e) => Err(nom::Err::Error(PError(e))),
     }
 }
 
 /// pratt parsing algorithm
-fn pratt_parse(i: Input, lbp: u32) -> Result<(Input, Expr), String> {
+fn pratt_parse(i: Input, lbp: u32) -> Result<(Input, PrattExpr), String> {
     // find a prefix expr
-    let (mut i, mut left) = prefix(i)?;
+    let (mut i, mut pratt_left) = prefix(i)?;
     loop {
         let Some(token) = i.get(0) else {
             break;
@@ -41,21 +42,21 @@ fn pratt_parse(i: Input, lbp: u32) -> Result<(Input, Expr), String> {
             break;
         }
         // find infix expr with prefix expr
-        match infix(i, left.clone()) {
+        match infix(i, pratt_left.clone()) {
             Ok(r) => {
                 i = r.0;
-                left = r.1
+                pratt_left = r.1
             }
             Err(e) => {
                 return Err(e);
             }
         }
     }
-    Ok((i, left))
+    Ok((i, pratt_left))
 }
 
 // find prefix expr
-fn prefix(i: Input) -> Result<(Input, Expr), String> {
+fn prefix(i: Input) -> Result<(Input, PrattExpr), String> {
     let Some(token) = i.get(0) else {
         return Err("No token found".to_string());
     };
@@ -75,53 +76,53 @@ fn prefix(i: Input) -> Result<(Input, Expr), String> {
         }
         TokenKind::LiteralInteger => Ok((
             i.slice(1..),
-            Expr::Literal(Literal::UnsignedInteger(
+            PrattExpr::Expr(Expr::Literal(Literal::UnsignedInteger(
                 token.text().parse::<usize>().unwrap(),
-            )),
+            ))),
         )),
         TokenKind::Ident => {
             let Ok((i, expr)) = alt((function_expr, column_ref_expr))(i) else {
                 return Err("can not find prefix expr".to_string());
             };
-            Ok((i, expr))
+            Ok((i, PrattExpr::Expr(expr)))
         }
         TokenKind::NOT => {
             let Ok((i, expr)) = exists_expr(i) else {
                 return Err("can not find prefix expr".to_string());
             };
-            Ok((i, expr))
+            Ok((i, PrattExpr::Expr(expr)))
         }
         TokenKind::EXISTS => {
-            let Ok((i, expr)) =  exists_expr(i) else {
+            let Ok((i, expr)) = exists_expr(i) else {
                 return Err("can not find prefix expr".to_string());
             };
-            Ok((i, expr))
+            Ok((i, PrattExpr::Expr(expr)))
         }
         TokenKind::Plus => {
-            let (i, expr) = pratt_parse(i.slice(1..), precedence(token, AffixKind::Prefix)?)?;
+            let (i, pratt_expr) = pratt_parse(i.slice(1..), precedence(token, AffixKind::Prefix)?)?;
             Ok((
                 i,
-                Expr::UnaryOp {
+                PrattExpr::Expr(Expr::UnaryOp {
                     op: UnaryOp::Plus,
-                    expr: Box::new(expr),
-                },
+                    expr: Box::new(pratt_expr.into_expr()),
+                }),
             ))
         }
         TokenKind::Minus => {
-            let (i, expr) = pratt_parse(i.slice(1..), precedence(token, AffixKind::Prefix)?)?;
+            let (i, pratt_expr) = pratt_parse(i.slice(1..), precedence(token, AffixKind::Prefix)?)?;
             Ok((
                 i,
-                Expr::UnaryOp {
+                PrattExpr::Expr(Expr::UnaryOp {
                     op: UnaryOp::Minus,
-                    expr: Box::new(expr),
-                },
+                    expr: Box::new(pratt_expr.into_expr()),
+                }),
             ))
         }
         _ => Err("First token can't be treated as prefix".to_string()),
     }
 }
 
-fn infix(i: Input, left: Expr) -> Result<(Input, Expr), String> {
+fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> {
     // find infix operator to get its precedence
     let Some(token) = i.get(0) else {
         return Err("No token found".to_string());
@@ -129,139 +130,159 @@ fn infix(i: Input, left: Expr) -> Result<(Input, Expr), String> {
     let i = i.slice(1..);
     match token.kind {
         TokenKind::Plus => {
-            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            let (i, pratt_right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
             Ok((
                 i,
-                Expr::BinaryOp {
-                    left: Box::new(left),
+                PrattExpr::Expr(Expr::BinaryOp {
+                    left: Box::new(pratt_left.into_expr()),
                     op: BinaryOp::Add,
-                    right: Box::new(right),
-                },
+                    right: Box::new(pratt_right.into_expr()),
+                }),
             ))
         }
         TokenKind::Minus => {
-            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            let (i, pratt_right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
             Ok((
                 i,
-                Expr::BinaryOp {
-                    left: Box::new(left),
+                PrattExpr::Expr(Expr::BinaryOp {
+                    left: Box::new(pratt_left.into_expr()),
                     op: BinaryOp::Sub,
-                    right: Box::new(right),
-                },
+                    right: Box::new(pratt_right.into_expr()),
+                }),
             ))
         }
         TokenKind::Multiply => {
-            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            let (i, pratt_right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
             Ok((
                 i,
-                Expr::BinaryOp {
-                    left: Box::new(left),
+                PrattExpr::Expr(Expr::BinaryOp {
+                    left: Box::new(pratt_left.into_expr()),
                     op: BinaryOp::Mul,
-                    right: Box::new(right),
-                },
+                    right: Box::new(pratt_right.into_expr()),
+                }),
             ))
         }
         TokenKind::Divide => {
-            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            let (i, pratt_right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
             Ok((
                 i,
-                Expr::BinaryOp {
-                    left: Box::new(left),
+                PrattExpr::Expr(Expr::BinaryOp {
+                    left: Box::new(pratt_left.into_expr()),
                     op: BinaryOp::Div,
-                    right: Box::new(right),
-                },
+                    right: Box::new(pratt_right.into_expr()),
+                }),
             ))
         }
         TokenKind::Gt => {
-            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            let (i, pratt_right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
             Ok((
                 i,
-                Expr::BinaryOp {
-                    left: Box::new(left),
+                PrattExpr::Expr(Expr::BinaryOp {
+                    left: Box::new(pratt_left.into_expr()),
                     op: BinaryOp::Gt,
-                    right: Box::new(right),
-                },
+                    right: Box::new(pratt_right.into_expr()),
+                }),
             ))
         }
         TokenKind::Lt => {
-            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            let (i, pratt_right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
             Ok((
                 i,
-                Expr::BinaryOp {
-                    left: Box::new(left),
+                PrattExpr::Expr(Expr::BinaryOp {
+                    left: Box::new(pratt_left.into_expr()),
                     op: BinaryOp::Lt,
-                    right: Box::new(right),
-                },
+                    right: Box::new(pratt_right.into_expr()),
+                }),
             ))
         }
         TokenKind::GtEq => {
-            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            let (i, pratt_right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
             Ok((
                 i,
-                Expr::BinaryOp {
-                    left: Box::new(left),
+                PrattExpr::Expr(Expr::BinaryOp {
+                    left: Box::new(pratt_left.into_expr()),
                     op: BinaryOp::GtEq,
-                    right: Box::new(right),
-                },
+                    right: Box::new(pratt_right.into_expr()),
+                }),
             ))
         }
         TokenKind::LtEq => {
-            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            let (i, pratt_right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
             Ok((
                 i,
-                Expr::BinaryOp {
-                    left: Box::new(left),
+                PrattExpr::Expr(Expr::BinaryOp {
+                    left: Box::new(pratt_left.into_expr()),
                     op: BinaryOp::LtEq,
-                    right: Box::new(right),
-                },
+                    right: Box::new(pratt_right.into_expr()),
+                }),
             ))
         }
         TokenKind::Eq => {
-            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            let (i, pratt_right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
             Ok((
                 i,
-                Expr::BinaryOp {
-                    left: Box::new(left),
+                PrattExpr::Expr(Expr::BinaryOp {
+                    left: Box::new(pratt_left.into_expr()),
                     op: BinaryOp::Eq,
-                    right: Box::new(right),
-                },
+                    right: Box::new(pratt_right.into_expr()),
+                }),
             ))
         }
         TokenKind::NotEq => {
-            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            let (i, pratt_right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
             Ok((
                 i,
-                Expr::BinaryOp {
-                    left: Box::new(left),
+                PrattExpr::Expr(Expr::BinaryOp {
+                    left: Box::new(pratt_left.into_expr()),
                     op: BinaryOp::NotEq,
-                    right: Box::new(right),
-                },
+                    right: Box::new(pratt_right.into_expr()),
+                }),
             ))
         }
         TokenKind::AND => {
-            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            let (i, pratt_right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
             Ok((
                 i,
-                Expr::BinaryOp {
-                    left: Box::new(left),
+                PrattExpr::Expr(Expr::BinaryOp {
+                    left: Box::new(pratt_left.into_expr()),
                     op: BinaryOp::And,
-                    right: Box::new(right),
-                },
+                    right: Box::new(pratt_right.into_expr()),
+                }),
             ))
         }
         TokenKind::OR => {
-            let (i, right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
+            let (i, pratt_right) = pratt_parse(i, precedence(token, AffixKind::Infix)?)?;
             Ok((
                 i,
-                Expr::BinaryOp {
-                    left: Box::new(left),
+                PrattExpr::Expr(Expr::BinaryOp {
+                    left: Box::new(pratt_left.into_expr()),
                     op: BinaryOp::Or,
-                    right: Box::new(right),
-                },
+                    right: Box::new(pratt_right.into_expr()),
+                }),
             ))
         }
         _ => {
             return Err("The token can't be treated as infix".to_string());
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+enum PrattExpr {
+    Expr(Expr),
+    Subquery(SelectStatement),
+}
+impl PrattExpr {
+    pub fn into_expr(self) -> Expr {
+        match self {
+            PrattExpr::Expr(expr) => expr,
+            _ => panic!("PrattExpr is not expr"),
+        }
+    }
+    pub fn into_subquery(self) -> SelectStatement {
+        match self {
+            PrattExpr::Subquery(stmt) => stmt,
+            _ => panic!("PrattExpr is not subquery"),
         }
     }
 }
