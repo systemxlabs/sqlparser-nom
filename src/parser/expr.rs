@@ -97,7 +97,8 @@ fn prefix(i: Input) -> Result<(Input, PrattExpr), String> {
             Ok((i, PrattExpr::Expr(expr)))
         }
         Plus => {
-            let (i, pratt_expr) = pratt_parse(i.slice(1..), precedence(PrattOp::Plus, AffixKind::Prefix)?)?;
+            let (i, pratt_expr) =
+                pratt_parse(i.slice(1..), precedence(PrattOp::Plus, AffixKind::Prefix)?)?;
             Ok((
                 i,
                 PrattExpr::Expr(Expr::UnaryOp {
@@ -107,7 +108,8 @@ fn prefix(i: Input) -> Result<(Input, PrattExpr), String> {
             ))
         }
         Minus => {
-            let (i, pratt_expr) = pratt_parse(i.slice(1..), precedence(PrattOp::Minus, AffixKind::Prefix)?)?;
+            let (i, pratt_expr) =
+                pratt_parse(i.slice(1..), precedence(PrattOp::Minus, AffixKind::Prefix)?)?;
             Ok((
                 i,
                 PrattExpr::Expr(Expr::UnaryOp {
@@ -156,7 +158,8 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
             ))
         }
         Multiply => {
-            let (i, pratt_right) = pratt_parse(i, precedence(PrattOp::Multiply, AffixKind::Infix)?)?;
+            let (i, pratt_right) =
+                pratt_parse(i, precedence(PrattOp::Multiply, AffixKind::Infix)?)?;
             Ok((
                 i,
                 PrattExpr::Expr(Expr::BinaryOp {
@@ -276,6 +279,29 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
                 }),
             ))
         }
+        NOT => {
+            let Some(token) = i.get(0) else {
+                return Err("No token found".to_string());
+            };
+            match token.kind {
+                IN => {
+                    let i = i.slice(1..);
+                    let (i, pratt_right) =
+                        pratt_parse(i, precedence(PrattOp::In, AffixKind::Infix)?)?;
+                    Ok((
+                        i,
+                        PrattExpr::Expr(Expr::InSubquery {
+                            not: true,
+                            expr: Box::new(pratt_left.into_expr()),
+                            subquery: Box::new(pratt_right.into_query()),
+                        }),
+                    ))
+                }
+                _ => {
+                    return Err(format!("Not support pratt operator: not {}", token.kind));
+                }
+            }
+        }
         _ => {
             return Err("The token can't be treated as infix".to_string());
         }
@@ -347,7 +373,6 @@ fn precedence(op: PrattOp, affix: AffixKind) -> Result<u32, String> {
         AffixKind::Prefix => match op {
             PrattOp::Plus | PrattOp::Minus => Ok(300),
             _ => Err(format!("pratt op {:?} can't be treated as prefix", op)),
-
         },
         AffixKind::Infix => match op {
             PrattOp::In => Ok(7),
