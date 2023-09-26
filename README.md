@@ -1,5 +1,5 @@
 # sqlparser-nom 
-A SQL query parser using nom.
+A SQL query parser written using nom.
 
 - [x] Query
   - [x] Select
