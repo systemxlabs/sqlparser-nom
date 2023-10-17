@@ -128,14 +128,10 @@ fn prefix(i: Input) -> Result<(Input, PrattExpr), String> {
 }
 
 fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> {
-    // find infix operator to get its precedence
-    let Some(token) = i.get(0) else {
-        return Err("No token found".to_string());
-    };
-    let i = i.slice(1..);
-    match token.kind {
-        Plus => {
-            let (i, pratt_right) = pratt_parse(i, precedence(PrattOp::Plus, AffixKind::Infix)?)?;
+    let (i, op) = pratt_operator(i).map_err(|e| e.to_string())?;
+    match op {
+        PrattOp::Plus => {
+            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
             Ok((
                 i,
                 PrattExpr::Expr(Expr::BinaryOp {
@@ -145,8 +141,8 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
                 }),
             ))
         }
-        Minus => {
-            let (i, pratt_right) = pratt_parse(i, precedence(PrattOp::Minus, AffixKind::Infix)?)?;
+        PrattOp::Minus => {
+            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
             Ok((
                 i,
                 PrattExpr::Expr(Expr::BinaryOp {
@@ -156,9 +152,8 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
                 }),
             ))
         }
-        Multiply => {
-            let (i, pratt_right) =
-                pratt_parse(i, precedence(PrattOp::Multiply, AffixKind::Infix)?)?;
+        PrattOp::Multiply => {
+            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
             Ok((
                 i,
                 PrattExpr::Expr(Expr::BinaryOp {
@@ -168,8 +163,8 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
                 }),
             ))
         }
-        Divide => {
-            let (i, pratt_right) = pratt_parse(i, precedence(PrattOp::Divide, AffixKind::Infix)?)?;
+        PrattOp::Divide => {
+            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
             Ok((
                 i,
                 PrattExpr::Expr(Expr::BinaryOp {
@@ -179,8 +174,8 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
                 }),
             ))
         }
-        Gt => {
-            let (i, pratt_right) = pratt_parse(i, precedence(PrattOp::Gt, AffixKind::Infix)?)?;
+        PrattOp::Gt => {
+            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
             Ok((
                 i,
                 PrattExpr::Expr(Expr::BinaryOp {
@@ -190,8 +185,8 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
                 }),
             ))
         }
-        Lt => {
-            let (i, pratt_right) = pratt_parse(i, precedence(PrattOp::Lt, AffixKind::Infix)?)?;
+        PrattOp::Lt => {
+            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
             Ok((
                 i,
                 PrattExpr::Expr(Expr::BinaryOp {
@@ -201,8 +196,8 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
                 }),
             ))
         }
-        GtEq => {
-            let (i, pratt_right) = pratt_parse(i, precedence(PrattOp::GtEq, AffixKind::Infix)?)?;
+        PrattOp::GtEq => {
+            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
             Ok((
                 i,
                 PrattExpr::Expr(Expr::BinaryOp {
@@ -212,8 +207,8 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
                 }),
             ))
         }
-        LtEq => {
-            let (i, pratt_right) = pratt_parse(i, precedence(PrattOp::LtEq, AffixKind::Infix)?)?;
+        PrattOp::LtEq => {
+            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
             Ok((
                 i,
                 PrattExpr::Expr(Expr::BinaryOp {
@@ -223,8 +218,8 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
                 }),
             ))
         }
-        Eq => {
-            let (i, pratt_right) = pratt_parse(i, precedence(PrattOp::Eq, AffixKind::Infix)?)?;
+        PrattOp::Eq => {
+            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
             Ok((
                 i,
                 PrattExpr::Expr(Expr::BinaryOp {
@@ -234,8 +229,8 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
                 }),
             ))
         }
-        NotEq => {
-            let (i, pratt_right) = pratt_parse(i, precedence(PrattOp::NotEq, AffixKind::Infix)?)?;
+        PrattOp::NotEq => {
+            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
             Ok((
                 i,
                 PrattExpr::Expr(Expr::BinaryOp {
@@ -245,8 +240,8 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
                 }),
             ))
         }
-        AND => {
-            let (i, pratt_right) = pratt_parse(i, precedence(PrattOp::And, AffixKind::Infix)?)?;
+        PrattOp::And => {
+            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
             Ok((
                 i,
                 PrattExpr::Expr(Expr::BinaryOp {
@@ -256,8 +251,8 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
                 }),
             ))
         }
-        OR => {
-            let (i, pratt_right) = pratt_parse(i, precedence(PrattOp::Or, AffixKind::Infix)?)?;
+        PrattOp::Or => {
+            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
             Ok((
                 i,
                 PrattExpr::Expr(Expr::BinaryOp {
@@ -268,7 +263,7 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
             ))
         }
         // postfix
-        IN => {
+        PrattOp::In { not } => {
             if let Ok((i, subquery)) =
                 tuple((match_token(LParen), select_stmt, match_token(RParen)))(i)
                     .map(|(i, (_, query, _))| (i, query))
@@ -276,7 +271,7 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
                 Ok((
                     i,
                     PrattExpr::Expr(Expr::InSubquery {
-                        not: false,
+                        not,
                         expr: Box::new(pratt_left.into_expr()),
                         subquery: Box::new(subquery),
                     }),
@@ -291,56 +286,13 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
                 Ok((
                     i,
                     PrattExpr::Expr(Expr::InList {
-                        not: false,
+                        not,
                         expr: Box::new(pratt_left.into_expr()),
                         list: exprs,
                     }),
                 ))
             } else {
                 return Err(format!("Failed to parse InSubquery or InList"));
-            }
-        }
-        NOT => {
-            let Some(token) = i.get(0) else {
-                return Err("No token found".to_string());
-            };
-            match token.kind {
-                IN => {
-                    let i = i.slice(1..);
-                    if let Ok((i, subquery)) =
-                        tuple((match_token(LParen), select_stmt, match_token(RParen)))(i)
-                            .map(|(i, (_, query, _))| (i, query))
-                    {
-                        Ok((
-                            i,
-                            PrattExpr::Expr(Expr::InSubquery {
-                                not: true,
-                                expr: Box::new(pratt_left.into_expr()),
-                                subquery: Box::new(subquery),
-                            }),
-                        ))
-                    } else if let Ok((i, exprs)) = tuple((
-                        match_token(LParen),
-                        comma_separated_list0(expr),
-                        match_token(RParen),
-                    ))(i)
-                    .map(|(i, (_, exprs, _))| (i, exprs))
-                    {
-                        Ok((
-                            i,
-                            PrattExpr::Expr(Expr::InList {
-                                not: true,
-                                expr: Box::new(pratt_left.into_expr()),
-                                list: exprs,
-                            }),
-                        ))
-                    } else {
-                        return Err(format!("Failed to parse InSubquery or InList"));
-                    }
-                }
-                _ => {
-                    return Err(format!("Not support pratt operator: not {}", token.kind));
-                }
             }
         }
         _ => {
