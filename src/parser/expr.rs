@@ -130,134 +130,24 @@ fn prefix(i: Input) -> Result<(Input, PrattExpr), String> {
 fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> {
     let (i, op) = pratt_operator(i).map_err(|e| e.to_string())?;
     match op {
-        PrattOp::Plus => {
+        PrattOp::Plus
+        | PrattOp::Minus
+        | PrattOp::Multiply
+        | PrattOp::Divide
+        | PrattOp::Gt
+        | PrattOp::Lt
+        | PrattOp::GtEq
+        | PrattOp::LtEq
+        | PrattOp::Eq
+        | PrattOp::NotEq
+        | PrattOp::And
+        | PrattOp::Or => {
             let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
             Ok((
                 i,
                 PrattExpr::Expr(Expr::BinaryOp {
                     left: Box::new(pratt_left.into_expr()),
-                    op: BinaryOp::Add,
-                    right: Box::new(pratt_right.into_expr()),
-                }),
-            ))
-        }
-        PrattOp::Minus => {
-            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
-            Ok((
-                i,
-                PrattExpr::Expr(Expr::BinaryOp {
-                    left: Box::new(pratt_left.into_expr()),
-                    op: BinaryOp::Sub,
-                    right: Box::new(pratt_right.into_expr()),
-                }),
-            ))
-        }
-        PrattOp::Multiply => {
-            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
-            Ok((
-                i,
-                PrattExpr::Expr(Expr::BinaryOp {
-                    left: Box::new(pratt_left.into_expr()),
-                    op: BinaryOp::Mul,
-                    right: Box::new(pratt_right.into_expr()),
-                }),
-            ))
-        }
-        PrattOp::Divide => {
-            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
-            Ok((
-                i,
-                PrattExpr::Expr(Expr::BinaryOp {
-                    left: Box::new(pratt_left.into_expr()),
-                    op: BinaryOp::Div,
-                    right: Box::new(pratt_right.into_expr()),
-                }),
-            ))
-        }
-        PrattOp::Gt => {
-            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
-            Ok((
-                i,
-                PrattExpr::Expr(Expr::BinaryOp {
-                    left: Box::new(pratt_left.into_expr()),
-                    op: BinaryOp::Gt,
-                    right: Box::new(pratt_right.into_expr()),
-                }),
-            ))
-        }
-        PrattOp::Lt => {
-            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
-            Ok((
-                i,
-                PrattExpr::Expr(Expr::BinaryOp {
-                    left: Box::new(pratt_left.into_expr()),
-                    op: BinaryOp::Lt,
-                    right: Box::new(pratt_right.into_expr()),
-                }),
-            ))
-        }
-        PrattOp::GtEq => {
-            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
-            Ok((
-                i,
-                PrattExpr::Expr(Expr::BinaryOp {
-                    left: Box::new(pratt_left.into_expr()),
-                    op: BinaryOp::GtEq,
-                    right: Box::new(pratt_right.into_expr()),
-                }),
-            ))
-        }
-        PrattOp::LtEq => {
-            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
-            Ok((
-                i,
-                PrattExpr::Expr(Expr::BinaryOp {
-                    left: Box::new(pratt_left.into_expr()),
-                    op: BinaryOp::LtEq,
-                    right: Box::new(pratt_right.into_expr()),
-                }),
-            ))
-        }
-        PrattOp::Eq => {
-            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
-            Ok((
-                i,
-                PrattExpr::Expr(Expr::BinaryOp {
-                    left: Box::new(pratt_left.into_expr()),
-                    op: BinaryOp::Eq,
-                    right: Box::new(pratt_right.into_expr()),
-                }),
-            ))
-        }
-        PrattOp::NotEq => {
-            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
-            Ok((
-                i,
-                PrattExpr::Expr(Expr::BinaryOp {
-                    left: Box::new(pratt_left.into_expr()),
-                    op: BinaryOp::NotEq,
-                    right: Box::new(pratt_right.into_expr()),
-                }),
-            ))
-        }
-        PrattOp::And => {
-            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
-            Ok((
-                i,
-                PrattExpr::Expr(Expr::BinaryOp {
-                    left: Box::new(pratt_left.into_expr()),
-                    op: BinaryOp::And,
-                    right: Box::new(pratt_right.into_expr()),
-                }),
-            ))
-        }
-        PrattOp::Or => {
-            let (i, pratt_right) = pratt_parse(i, precedence(op, AffixKind::Infix)?)?;
-            Ok((
-                i,
-                PrattExpr::Expr(Expr::BinaryOp {
-                    left: Box::new(pratt_left.into_expr()),
-                    op: BinaryOp::Or,
+                    op: op.to_binary_operator(),
                     right: Box::new(pratt_right.into_expr()),
                 }),
             ))
@@ -294,9 +184,6 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
             } else {
                 return Err(format!("Failed to parse InSubquery or InList"));
             }
-        }
-        _ => {
-            return Err("The token can't be treated as infix".to_string());
         }
     }
 }
@@ -335,12 +222,32 @@ enum PrattOp {
     // (not) in
     In { not: bool },
 }
+impl PrattOp {
+    pub fn to_binary_operator(&self) -> BinaryOp {
+        match self {
+            PrattOp::Plus => BinaryOp::Add,
+            PrattOp::Minus => BinaryOp::Sub,
+            PrattOp::Multiply => BinaryOp::Mul,
+            PrattOp::Divide => BinaryOp::Div,
+            PrattOp::Gt => BinaryOp::Gt,
+            PrattOp::Lt => BinaryOp::Lt,
+            PrattOp::GtEq => BinaryOp::GtEq,
+            PrattOp::LtEq => BinaryOp::LtEq,
+            PrattOp::Eq => BinaryOp::Eq,
+            PrattOp::NotEq => BinaryOp::NotEq,
+            PrattOp::And => BinaryOp::And,
+            PrattOp::Or => BinaryOp::Or,
+            _ => panic!("can't convert {:?} to binary operator", self),
+        }
+    }
+}
 
 fn pratt_operator(i: Input) -> IResult<PrattOp> {
     alt((
         match_token(Plus).map(|_| PrattOp::Plus),
         match_token(Minus).map(|_| PrattOp::Minus),
         match_token(Multiply).map(|_| PrattOp::Multiply),
+        match_token(Divide).map(|_| PrattOp::Divide),
         match_token(Gt).map(|_| PrattOp::Gt),
         match_token(Lt).map(|_| PrattOp::Lt),
         match_token(GtEq).map(|_| PrattOp::GtEq),
