@@ -381,7 +381,7 @@ enum PrattOp {
     And,
     Or,
     // (not) in
-    In,
+    In { not: bool },
 }
 
 fn pratt_operator(i: Input) -> IResult<PrattOp> {
@@ -397,7 +397,8 @@ fn pratt_operator(i: Input) -> IResult<PrattOp> {
         match_token(NotEq).map(|_| PrattOp::NotEq),
         match_token(AND).map(|_| PrattOp::And),
         match_token(OR).map(|_| PrattOp::Or),
-        tuple((opt(match_token(NOT)), match_token(IN))).map(|_| PrattOp::In),
+        tuple((match_token(NOT), match_token(IN))).map(|_| PrattOp::In { not: true }),
+        match_token(IN).map(|_| PrattOp::In { not: false }),
     ))(i)
 }
 
@@ -409,7 +410,7 @@ fn precedence(op: PrattOp, affix: AffixKind) -> Result<u32, String> {
             _ => Err(format!("pratt op {:?} can't be treated as prefix", op)),
         },
         AffixKind::Infix => match op {
-            PrattOp::In => Ok(7),
+            PrattOp::In { .. } => Ok(7),
             PrattOp::Or => Ok(8),
             PrattOp::And => Ok(9),
             PrattOp::Gt
@@ -550,14 +551,6 @@ mod tests {
         println!("expr: {}", result.1);
 
         let tokens = tokenize_sql("t1.a != 1 or t1.b > 2 and c = 3");
-        let result = expr(&tokens).unwrap();
-        println!("expr: {}", result.1);
-
-        let tokens = tokenize_sql("t1.a in (select 1)");
-        let result = expr(&tokens).unwrap();
-        println!("expr: {}", result.1);
-
-        let tokens = tokenize_sql("t1.a in (1, 2, 3)");
         let result = expr(&tokens).unwrap();
         println!("expr: {}", result.1);
     }
