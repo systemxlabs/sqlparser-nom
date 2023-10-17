@@ -34,6 +34,11 @@ pub enum Expr {
         expr: Box<Expr>,
         subquery: Box<SelectStatement>,
     },
+    InList {
+        not: bool,
+        expr: Box<Expr>,
+        list: Vec<Expr>,
+    },
 }
 impl std::fmt::Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -96,6 +101,22 @@ impl std::fmt::Display for Expr {
                     write!(f, "{} IN", expr)?;
                 }
                 write!(f, " ({})", subquery)?;
+                Ok(())
+            }
+            Self::InList { not, expr, list } => {
+                if *not {
+                    write!(f, "{} NOT IN", expr)?;
+                } else {
+                    write!(f, "{} IN", expr)?;
+                }
+                write!(
+                    f,
+                    " ({})",
+                    list.iter()
+                        .map(|e| e.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )?;
                 Ok(())
             }
         }
