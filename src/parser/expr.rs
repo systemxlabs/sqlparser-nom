@@ -3,7 +3,6 @@ use nom::{branch::alt, sequence::tuple};
 use nom::{Parser, Slice};
 
 use crate::ast::expr::{BinaryOp, Expr, FunctionArg, Literal, UnaryOp, Window, WindowSpec};
-use crate::ast::statement::SelectStatement;
 use crate::parser::common::{comma_separated_list0, AffixKind, MIN_PRECEDENCE};
 use crate::parser::error::PError;
 use crate::parser::statement::{order_by_expr, select_stmt};
@@ -268,16 +267,38 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
                 }),
             ))
         }
+        // postfix
         IN => {
-            let (i, pratt_right) = pratt_parse(i, precedence(PrattOp::In, AffixKind::Infix)?)?;
-            Ok((
-                i,
-                PrattExpr::Expr(Expr::InSubquery {
-                    not: false,
-                    expr: Box::new(pratt_left.into_expr()),
-                    subquery: Box::new(pratt_right.into_query()),
-                }),
-            ))
+            if let Ok((i, subquery)) =
+                tuple((match_token(LParen), select_stmt, match_token(RParen)))(i)
+                    .map(|(i, (_, query, _))| (i, query))
+            {
+                Ok((
+                    i,
+                    PrattExpr::Expr(Expr::InSubquery {
+                        not: false,
+                        expr: Box::new(pratt_left.into_expr()),
+                        subquery: Box::new(subquery),
+                    }),
+                ))
+            } else if let Ok((i, exprs)) = tuple((
+                match_token(LParen),
+                comma_separated_list0(expr),
+                match_token(RParen),
+            ))(i)
+            .map(|(i, (_, exprs, _))| (i, exprs))
+            {
+                Ok((
+                    i,
+                    PrattExpr::Expr(Expr::InList {
+                        not: false,
+                        expr: Box::new(pratt_left.into_expr()),
+                        list: exprs,
+                    }),
+                ))
+            } else {
+                return Err(format!("Failed to parse InSubquery or InList"));
+            }
         }
         NOT => {
             let Some(token) = i.get(0) else {
@@ -286,16 +307,36 @@ fn infix(i: Input, pratt_left: PrattExpr) -> Result<(Input, PrattExpr), String> 
             match token.kind {
                 IN => {
                     let i = i.slice(1..);
-                    let (i, pratt_right) =
-                        pratt_parse(i, precedence(PrattOp::In, AffixKind::Infix)?)?;
-                    Ok((
-                        i,
-                        PrattExpr::Expr(Expr::InSubquery {
-                            not: true,
-                            expr: Box::new(pratt_left.into_expr()),
-                            subquery: Box::new(pratt_right.into_query()),
-                        }),
-                    ))
+                    if let Ok((i, subquery)) =
+                        tuple((match_token(LParen), select_stmt, match_token(RParen)))(i)
+                            .map(|(i, (_, query, _))| (i, query))
+                    {
+                        Ok((
+                            i,
+                            PrattExpr::Expr(Expr::InSubquery {
+                                not: true,
+                                expr: Box::new(pratt_left.into_expr()),
+                                subquery: Box::new(subquery),
+                            }),
+                        ))
+                    } else if let Ok((i, exprs)) = tuple((
+                        match_token(LParen),
+                        comma_separated_list0(expr),
+                        match_token(RParen),
+                    ))(i)
+                    .map(|(i, (_, exprs, _))| (i, exprs))
+                    {
+                        Ok((
+                            i,
+                            PrattExpr::Expr(Expr::InList {
+                                not: true,
+                                expr: Box::new(pratt_left.into_expr()),
+                                list: exprs,
+                            }),
+                        ))
+                    } else {
+                        return Err(format!("Failed to parse InSubquery or InList"));
+                    }
                 }
                 _ => {
                     return Err(format!("Not support pratt operator: not {}", token.kind));
@@ -317,14 +358,6 @@ impl PrattExpr {
     pub fn into_expr(self) -> Expr {
         match self {
             PrattExpr::Expr(expr) => expr,
-        }
-    }
-    pub fn into_query(self) -> SelectStatement {
-        match self {
-            PrattExpr::Expr(expr) => match expr {
-                Expr::Subquery(query) => *query,
-                _ => panic!("Failed to PrattExpr.into_query"),
-            },
         }
     }
 }
@@ -519,6 +552,36 @@ mod tests {
         let tokens = tokenize_sql("t1.a != 1 or t1.b > 2 and c = 3");
         let result = expr(&tokens).unwrap();
         println!("expr: {}", result.1);
+
+        let tokens = tokenize_sql("t1.a in (select 1)");
+        let result = expr(&tokens).unwrap();
+        println!("expr: {}", result.1);
+
+        let tokens = tokenize_sql("t1.a in (1, 2, 3)");
+        let result = expr(&tokens).unwrap();
+        println!("expr: {}", result.1);
+    }
+
+    #[test]
+    pub fn test_in_subquery() {
+        use super::*;
+        use crate::parser::tokenize_sql;
+
+        let tokens = tokenize_sql("t1.a in (select 1)");
+        let result = expr(&tokens).unwrap();
+        assert_eq!(result.0.len(), 0);
+        assert_eq!(format!("{}", result.1), "t1.a IN (SELECT 1)");
+    }
+
+    #[test]
+    pub fn test_in_list() {
+        use super::*;
+        use crate::parser::tokenize_sql;
+
+        let tokens = tokenize_sql("t1.a in (1, 2, 3)");
+        let result = expr(&tokens).unwrap();
+        assert_eq!(result.0.len(), 0);
+        assert_eq!(format!("{}", result.1), "t1.a IN (1, 2, 3)");
     }
 
     #[test]

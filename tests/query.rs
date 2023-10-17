@@ -104,6 +104,14 @@ pub fn test_query() {
             r#"SELECT * FROM x WHERE column_1 NOT IN (SELECT column_1 FROM x)"#,
         ),
         (
+            r#"select * from x where column_1 in (1, 2, 3);"#,
+            r#"SELECT * FROM x WHERE column_1 IN (1, 2, 3)"#,
+        ),
+        (
+            r#"select * from x where column_1 not in (1, 2, 3);"#,
+            r#"SELECT * FROM x WHERE column_1 NOT IN (1, 2, 3)"#,
+        ),
+        (
             r#"select * from x y where column_1 < (select sum(column_2) from x where x.column_1 = y.column_1);"#,
             r#"SELECT * FROM x AS y WHERE (column_1 < (SELECT sum(column_2) FROM x WHERE (x.column_1 = y.column_1)))"#,
         ),
